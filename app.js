@@ -1,20 +1,8 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-const SUPABASE_URL = 'REEMPLAZA_CON_TU_SUPABASE_URL';
-const SUPABASE_ANON_KEY = 'REEMPLAZA_CON_TU_SUPABASE_ANON_KEY';
+const SUPABASE_URL = 'https://ymqzdewfxzsygujluyiy.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_XVgNadNTBRQgX0hjozPO-Q_D8wWbS0P';
 
-if (SUPABASE_URL.includes('REEMPLAZA_') || SUPABASE_ANON_KEY.includes('REEMPLAZA_')) {
-  document.getElementById('app').innerHTML = `
-    <main class="mx-auto max-w-2xl p-6">
-      <section class="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-amber-800 shadow-soft">
-        <h1 class="text-xl font-semibold">Configura Supabase</h1>
-        <p class="mt-2 text-sm">
-          Edita <code>app.js</code> y reemplaza <code>SUPABASE_URL</code> y <code>SUPABASE_ANON_KEY</code>.
-        </p>
-      </section>
-    </main>
-  `;
-  throw new Error('Supabase no configurado');
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
