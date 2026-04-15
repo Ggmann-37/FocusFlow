@@ -1,130 +1,64 @@
-# FocusFlow
+# FocusFlow (sin Node.js, sin build)
 
-Aplicación web moderna de productividad con calendario, tareas y planificación automática de estudio para exámenes.
+FocusFlow es una app web completa de productividad (calendario + tareas + planificación automática de estudio) construida solo con **HTML, CSS y JavaScript puro**, lista para publicar en **GitHub Pages**.
 
-## Stack
+## ✅ Qué incluye
 
-- **Frontend:** React + Vite
-- **Estilos:** TailwindCSS
-- **Animaciones:** Framer Motion
-- **Backend:** Supabase (Auth + Database)
-- **Desktop ready:** Electron + electron-updater
-- **Deploy web:** GitHub Pages
+- Autenticación Supabase (login/registro/logout) con sesión persistente.
+- Calendario mensual interactivo con navegación y animación.
+- CRUD completo de tareas: nombre, minutos, fecha.
+- Feature principal de exámenes: crea tareas automáticas diarias `Estudio: [nombre examen]`.
+- Panel lateral deslizante para detalle diario.
+- Botón flotante para acceso rápido.
+- Tema claro/oscuro/sistema con localStorage y transición suave.
+- Responsive para móvil y escritorio.
 
-## Funcionalidades implementadas
-
-- ✅ Login / registro con Supabase (email/password)
-- ✅ Persistencia de sesión y logout
-- ✅ Seguridad por usuario con RLS en Supabase
-- ✅ Calendario mensual con navegación animada
-- ✅ Panel lateral deslizante al hacer click en día
-- ✅ CRUD completo de tareas (nombre, minutos, fecha)
-- ✅ Feature principal de exámenes: generación automática de tareas diarias
-- ✅ Modo claro / oscuro / sistema con persistencia en localStorage
-- ✅ Botón flotante para acciones rápidas
-- ✅ Loader y mensajes de error elegantes
-- ✅ Indicador visual de carga diaria de minutos
-- ✅ Resumen semanal en minutos
-- ✅ Diseño responsive con estética moderna tipo SaaS
-
----
-
-## 1) Instalación
-
-```bash
-npm install
-```
-
-## 2) Configurar variables de entorno
-
-Copia `.env.example` a `.env` y completa:
-
-```bash
-cp .env.example .env
-```
-
-```env
-VITE_SUPABASE_URL=...
-VITE_SUPABASE_ANON_KEY=...
-```
-
-## 3) Configurar base de datos en Supabase
-
-1. Abre tu proyecto en Supabase.
-2. Ve a **SQL Editor**.
-3. Ejecuta el contenido de `supabase/schema.sql`.
-4. Verifica que en **Authentication > Providers** esté habilitado email/password.
-
-## 4) Ejecutar en desarrollo
-
-```bash
-npm run dev
-```
-
-## 5) Build producción web
-
-```bash
-npm run build
-npm run preview
-```
-
-## 6) Deploy en GitHub Pages
-
-1. Cambia en `package.json` y `electron/main.js` el placeholder `YOUR_GITHUB_USERNAME`.
-2. Sube el repo a GitHub.
-3. Publica la carpeta `dist` con GitHub Pages.
-
-> `vite.config.js` ya incluye `base: '/FocusFlow/'`.
-
-## 7) Ejecutar versión Electron
-
-```bash
-npm run electron
-```
-
-## 8) Empaquetar `.exe`
-
-```bash
-npm run electron:dist
-```
-
-`electron-updater` está configurado para buscar actualizaciones publicadas en GitHub Releases.
-
----
-
-## Estructura
+## Estructura del proyecto
 
 ```txt
-src/
-  components/
-    Auth.jsx
-    Calendar.jsx
-    ExamForm.jsx
-    SidePanel.jsx
-    TaskForm.jsx
-    TaskList.jsx
-    ThemeToggle.jsx
-  hooks/
-    useTheme.js
-  lib/
-    supabase.js
-  styles/
-    index.css
-  App.jsx
-  main.jsx
-electron/
-  main.js
-supabase/
-  schema.sql
+index.html
+styles.css
+app.js
+supabase/schema.sql
 ```
 
----
+## 1) Configurar base de datos Supabase
 
-## Notas de arquitectura
+1. Crea un proyecto en Supabase.
+2. Ve a **SQL Editor**.
+3. Ejecuta el archivo `supabase/schema.sql`.
+4. En **Authentication > Providers**, habilita email/password.
 
-- Todos los datos viven en Supabase (no solo localStorage).
-- localStorage se usa únicamente para guardar la preferencia visual del tema.
-- La generación de plan de examen crea:
-  - Un registro en `exams`
-  - N tareas de tipo `exam` en `tasks` (una por día desde inicio hasta el día previo al examen)
-- Todo el acceso a datos está filtrado por `user_id` y protegido por políticas RLS.
+## 2) Configurar claves Supabase
+
+Abre `app.js` y reemplaza estas dos constantes:
+
+```js
+const SUPABASE_URL = 'REEMPLAZA_CON_TU_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'REEMPLAZA_CON_TU_SUPABASE_ANON_KEY';
+```
+
+## 3) Ejecutar local sin instalar nada
+
+Puedes abrir `index.html` directamente o usar un servidor estático simple:
+
+```bash
+python3 -m http.server 8080
+```
+
+Luego abre `http://localhost:8080`.
+
+## 4) Subir a GitHub Pages
+
+1. Sube estos archivos al repositorio.
+2. En GitHub, entra a **Settings > Pages**.
+3. Publica desde la rama principal (`/root`).
+4. Tu app quedará online sin build ni dependencias.
+
+## Notas importantes
+
+- **No usa npm, Node.js ni bundlers.**
+- Supabase se carga por CDN oficial.
+- Tailwind se usa por CDN.
+- Toda la persistencia de datos (tareas/exámenes) está en Supabase.
+- `localStorage` solo guarda la preferencia de tema.
