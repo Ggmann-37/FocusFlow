@@ -1,11 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="FocusFlow logo">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="FocusFlow logo">
   <defs>
-    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2563eb"/>
-      <stop offset="100%" stop-color="#7c3aed"/>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#5750e0"/>
     </linearGradient>
   </defs>
-  <rect width="128" height="128" rx="28" fill="#0f172a"/>
-  <path d="M28 34h72v16H56v14h32v16H56v14h44v16H28z" fill="url(#g1)"/>
-  <circle cx="96" cy="32" r="10" fill="#22d3ee"/>
+
+  <rect width="256" height="256" rx="52" fill="url(#bg)" />
+
+  <rect x="58" y="84" width="140" height="112" rx="14" fill="#f4f4f5" />
+  <rect x="58" y="84" width="140" height="24" rx="10" fill="#cfd6ed" />
+
+  <circle cx="90" cy="138" r="8" fill="#4f46e5" />
+  <circle cx="120" cy="138" r="8" fill="#4f46e5" />
+  <circle cx="150" cy="138" r="8" fill="#4f46e5" />
+  <circle cx="90" cy="168" r="8" fill="#4f46e5" />
+  <circle cx="120" cy="168" r="8" fill="#4f46e5" />
+
+  <path
+    d="M70 204C86 192 103 192 122 199C140 206 157 211 178 197"
+    fill="none"
+    stroke="#aeb7ff"
+    stroke-linecap="round"
+    stroke-width="5"
+  />
 </svg>
