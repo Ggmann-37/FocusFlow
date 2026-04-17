@@ -3,11 +3,11 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const SUPABASE_URL = 'https://pztdjbeyyuckhygobdla.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_9DWuwVmEnBqYlWdWmRqV5w_4_MPO1HD';
 
-
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const state = {
   session: null,
+  profile: null,
   tasks: [],
   selectedDate: formatDate(new Date()),
   currentMonth: monthKey(new Date()),
@@ -17,8 +17,21 @@ const state = {
   loading: true,
   toast: '',
   authError: '',
+  authLoading: false,
   registerPanelOpen: false,
+  registerLoading: false,
+  registerError: '',
+  examSummary: null,
+  timer: {
+    taskId: null,
+    remainingSeconds: 0,
+    running: false,
+    doneModalOpen: false,
+    doneTaskName: '',
+  },
 };
+
+let timerInterval = null;
 
 const app = document.getElementById('app');
 
@@ -38,9 +51,7 @@ function setTheme(mode) {
 }
 
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-  if (state.mode === 'system') {
-    applyTheme();
-  }
+  if (state.mode === 'system') applyTheme();
 });
 
 function monthKey(date) {
@@ -58,6 +69,15 @@ function formatDate(date) {
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
+}
+
+function toHumanDate(dateStr) {
+  if (!dateStr) return '--';
+  return new Date(`${dateStr}T12:00:00`).toLocaleDateString('es-ES', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
 }
 
 function monthLabel(monthStr) {
@@ -145,26 +165,34 @@ async function fetchTasks() {
   state.tasks = data || [];
 }
 
+async function fetchProfile() {
+  if (!state.session?.user?.id) return;
+  const { data } = await supabase.from('profiles').select('username').eq('id', state.session.user.id).maybeSingle();
+  state.profile = data || null;
+}
+
 async function initSession() {
   applyTheme();
   const { data, error } = await supabase.auth.getSession();
-  if (error) {
-    toast(error.message);
-  }
+  if (error) toast(error.message);
   state.session = data.session;
   state.loading = false;
 
   if (state.session) {
-    await fetchTasks();
+    await Promise.all([fetchTasks(), fetchProfile()]);
   }
 
   supabase.auth.onAuthStateChange(async (_event, session) => {
     state.session = session;
     state.editTaskId = null;
+    state.examSummary = null;
+    resetTimer();
+
     if (session) {
-      await fetchTasks();
+      await Promise.all([fetchTasks(), fetchProfile()]);
     } else {
       state.tasks = [];
+      state.profile = null;
     }
     render();
   });
@@ -177,7 +205,10 @@ function authView() {
     <main class="flex min-h-screen items-center justify-center p-5">
       <section class="auth-card w-full max-w-md rounded-3xl border border-zinc-200 bg-white p-6 shadow-soft dark:border-zinc-800 dark:bg-zinc-900 fade-in">
         <div class="mb-3 flex items-center justify-between gap-2">
-          <h1 class="text-2xl font-semibold">FocusFlow</h1>
+          <div class="flex items-center gap-3">
+            <img src="assets/logo-focusflow.svg" alt="Logo FocusFlow" class="h-11 w-11 rounded-2xl" />
+            <h1 class="text-2xl font-semibold">FocusFlow</h1>
+          </div>
           <button data-theme="${state.mode === 'dark' ? 'light' : 'dark'}" class="rounded-xl border border-zinc-200 px-3 py-1.5 text-xs hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
             ${state.mode === 'dark' ? 'Modo claro' : 'Modo oscuro'}
           </button>
@@ -185,26 +216,47 @@ function authView() {
         <p class="mt-1 text-sm text-zinc-500">Productividad, tareas y estudio inteligente.</p>
 
         <form id="auth-form" class="mt-6 space-y-3">
-          <input required name="email" type="email" placeholder="Email" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
+          <input required name="email" type="email" placeholder="E-mail" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
           <input required name="password" type="password" placeholder="Contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
           ${state.authError ? `<p class="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-950/20 dark:text-red-300">${state.authError}</p>` : ''}
-          <button data-mode="login" class="w-full rounded-xl bg-blue-600 py-2 text-white hover:bg-blue-500">Entrar</button>
-          <button type="button" id="open-register-panel" class="w-full rounded-xl border border-zinc-200 py-2 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Crear cuenta</button>
+          <button data-mode="login" ${state.authLoading ? 'disabled' : ''} class="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-2 text-white hover:bg-blue-500 disabled:opacity-70">
+            ${state.authLoading ? '<span class="spinner"></span> Iniciando...' : 'Iniciar sesión'}
+          </button>
+          <button type="button" id="open-register-panel" class="w-full rounded-xl border border-zinc-200 py-2 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Registrarse</button>
         </form>
-
-        <section class="register-panel mt-4 rounded-2xl border border-zinc-200 p-4 dark:border-zinc-700 ${state.registerPanelOpen ? 'open' : ''}">
-          <h2 class="text-sm font-semibold">Crear cuenta nueva</h2>
-          <form id="register-form" class="mt-3 space-y-2">
-            <input required name="register_email" type="email" placeholder="Email" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
-            <input required name="username" type="text" placeholder="Nombre de usuario" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
-            <input required name="register_password" type="password" placeholder="Contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
-            <input required name="confirm_password" type="password" placeholder="Repite la contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
-            <button data-mode="register" class="w-full rounded-xl bg-violet-600 py-2 text-white hover:bg-violet-500">Crear cuenta ahora</button>
-          </form>
-        </section>
       </section>
+
+      ${state.registerPanelOpen ? registerPanelView() : ''}
     </main>
   `;
+}
+
+function registerPanelView() {
+  return `
+    <div id="register-overlay" class="fixed inset-0 z-40 bg-black/35"></div>
+    <section class="modal-panel fixed inset-0 z-50 m-auto h-fit w-[92%] rounded-2xl border border-zinc-200 bg-white p-5 shadow-soft dark:border-zinc-700 dark:bg-zinc-900">
+      <div class="flex items-center justify-between">
+        <h2 class="text-base font-semibold">Nueva cuenta</h2>
+        <button id="close-register-panel" class="rounded-lg border border-zinc-200 px-2 py-1 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Cerrar</button>
+      </div>
+      <form id="register-form" class="mt-3 space-y-2">
+        <input required name="register_email" type="email" placeholder="E-mail" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
+        <input required name="username" type="text" placeholder="Nombre de usuario" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
+        <input required name="register_password" type="password" placeholder="Contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
+        <input required name="confirm_password" type="password" placeholder="Repite la contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
+        ${state.registerError ? `<p class="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-950/20 dark:text-red-300">${state.registerError}</p>` : ''}
+        <button data-mode="register" ${state.registerLoading ? 'disabled' : ''} class="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-2 text-white hover:bg-violet-500 disabled:opacity-70">
+          ${state.registerLoading ? '<span class="spinner"></span> Registrando...' : 'Registrarse'}
+        </button>
+      </form>
+    </section>
+  `;
+}
+
+function formatSeconds(total) {
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 function dayPanelView() {
@@ -222,22 +274,29 @@ function dayPanelView() {
         ${
           tasks.length
             ? tasks
-                .map(
-                  (task) => `
+                .map((task) => {
+                  const isTimerTask = state.timer.taskId === task.id;
+                  return `
               <article class="task-item rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
                 <div class="flex items-start justify-between gap-2">
                   <div>
                     <p class="font-medium">${task.nombre}</p>
                     <p class="text-sm text-zinc-500">${task.minutos} min · ${task.tipo === 'exam' ? 'Plan examen' : 'Tarea'}</p>
+                    <p class="timer-text mt-1 text-sm font-semibold text-blue-600 dark:text-blue-300">${isTimerTask ? formatSeconds(state.timer.remainingSeconds) : formatSeconds(Number(task.minutos) * 60)}</p>
                   </div>
                   <div class="flex gap-1">
                     <button data-edit-task="${task.id}" class="rounded-lg border border-zinc-200 px-2 py-1 text-xs hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Editar</button>
                     <button data-delete-task="${task.id}" class="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50">Eliminar</button>
                   </div>
                 </div>
+                <div class="mt-3 flex flex-wrap gap-2">
+                  <button data-start-timer="${task.id}" class="rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs text-white hover:bg-blue-500">${isTimerTask && state.timer.running ? 'Reiniciar' : 'Iniciar'}</button>
+                  <button data-pause-timer="${task.id}" class="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Pausar</button>
+                  <button data-submit-task="${task.id}" class="rounded-lg border border-emerald-300 px-2.5 py-1.5 text-xs text-emerald-700 hover:bg-emerald-50">Entregar</button>
+                </div>
               </article>
-            `
-                )
+            `;
+                })
                 .join('')
             : '<p class="text-sm text-zinc-500">No hay tareas para este día.</p>'
         }
@@ -258,9 +317,14 @@ function dayPanelView() {
         <h3 class="font-semibold">Planificar examen</h3>
         <input required name="nombre" placeholder="Nombre examen" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
         <input required name="fecha_examen" type="date" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
-        <input required name="fecha_inicio" type="date" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
+        <input required name="fecha_inicio" type="date" value="${state.selectedDate}" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
         <input required min="1" name="minutos_diarios" type="number" value="60" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
         <button class="rounded-xl bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-500">Generar plan automático</button>
+        ${
+          state.examSummary
+            ? `<p class="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:border-amber-700/60 dark:bg-amber-950/20 dark:text-amber-300">Plan creado. Fecha de inicio: <strong>${toHumanDate(state.examSummary.fecha_inicio)}</strong> · Fecha del examen: <strong>${toHumanDate(state.examSummary.fecha_examen)}</strong></p>`
+            : ''
+        }
       </form>
     </div>
   `;
@@ -275,9 +339,12 @@ function appView() {
   return `
     <main class="mx-auto max-w-7xl p-4 md:p-8 space-y-5">
       <header class="rounded-3xl border border-zinc-200 bg-white p-4 shadow-soft dark:border-zinc-800 dark:bg-zinc-900 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 class="text-2xl font-semibold">FocusFlow</h1>
-          <p class="text-sm text-zinc-500">Calendario, tareas y estudio automático para exámenes</p>
+        <div class="flex items-center gap-3">
+          <img src="assets/logo-focusflow.svg" alt="Logo FocusFlow" class="h-11 w-11 rounded-2xl" />
+          <div>
+            <h1 class="text-2xl font-semibold">FocusFlow</h1>
+            <p class="text-sm text-zinc-500">Calendario, tareas y estudio automático para exámenes${state.profile?.username ? ` · @${state.profile.username}` : ''}</p>
+          </div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <div class="rounded-2xl border border-zinc-200 bg-zinc-100 p-1 dark:border-zinc-700 dark:bg-zinc-800">
@@ -358,6 +425,7 @@ function appView() {
         ${dayPanelView()}
       </aside>
 
+      ${state.timer.doneModalOpen ? `<div class="fixed inset-0 z-[65] grid place-items-center bg-black/40"><section class="w-[92%] max-w-sm rounded-2xl border border-zinc-200 bg-white p-5 text-center shadow-soft dark:border-zinc-700 dark:bg-zinc-900"><h3 class="text-lg font-semibold">Tiempo acabado</h3><p class="mt-2 text-sm text-zinc-500">La tarea <strong>${state.timer.doneTaskName}</strong> ha finalizado.</p><button id="close-done-modal" class="mt-4 rounded-xl bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-500">Aceptar</button></section></div>` : ''}
       ${state.toast ? `<div class="fixed left-1/2 top-4 z-[60] -translate-x-1/2 rounded-xl bg-zinc-900 px-4 py-2 text-sm text-white shadow-soft dark:bg-zinc-100 dark:text-zinc-900">${state.toast}</div>` : ''}
     </main>
   `;
@@ -379,48 +447,53 @@ function setPanel(open) {
   const panel = document.getElementById('panel');
   const overlay = document.getElementById('overlay');
   if (!panel || !overlay) return;
-
   panel.classList.toggle('open', open);
   overlay.classList.toggle('open', open);
 }
 
 async function handleAuth(event) {
   event.preventDefault();
-  const button = event.submitter;
-  const mode = button?.dataset?.mode;
-  if (!mode) return;
+  if (state.authLoading) return;
 
   const formData = new FormData(event.target);
   const email = String(formData.get('email')).trim();
   const password = String(formData.get('password')).trim();
 
   state.authError = '';
-  const action = mode === 'login' ? 'signInWithPassword' : 'signUp';
-  const { error } = await supabase.auth[action]({ email, password });
+  state.authLoading = true;
+  render();
 
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+  state.authLoading = false;
   if (error) {
-    state.authError = 'Contraseña incorrecta. Revisa tus datos.';
-    if (!/invalid login credentials|invalid_credentials/i.test(error.message)) {
-      state.authError = error.message;
-    }
+    state.authError = 'E-mail o contraseña incorrecta.';
     render();
   }
 }
 
 async function handleRegister(event) {
   event.preventDefault();
+  if (state.registerLoading) return;
+
   const formData = new FormData(event.target);
   const email = String(formData.get('register_email')).trim();
   const username = String(formData.get('username')).trim();
   const password = String(formData.get('register_password')).trim();
   const confirmPassword = String(formData.get('confirm_password')).trim();
 
+  state.registerError = '';
+
   if (password !== confirmPassword) {
-    toast('Revisar: las contraseñas no coinciden.');
+    state.registerError = 'La contraseña no coincide.';
+    render();
     return;
   }
 
-  const { error } = await supabase.auth.signUp({
+  state.registerLoading = true;
+  render();
+
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -428,8 +501,19 @@ async function handleRegister(event) {
     },
   });
 
+  if (!error && data?.user?.id) {
+    await supabase.from('profiles').upsert({
+      id: data.user.id,
+      username,
+      email,
+    });
+  }
+
+  state.registerLoading = false;
+
   if (error) {
-    toast(error.message);
+    state.registerError = error.message;
+    render();
   } else {
     state.registerPanelOpen = false;
     toast('Cuenta creada. Revisa tu correo si la confirmación está habilitada.');
@@ -462,6 +546,7 @@ async function upsertTask(event) {
       .eq('user_id', state.session.user.id);
 
     if (error) return toast(error.message);
+    if (state.timer.taskId === state.editTaskId) resetTimer();
     state.editTaskId = null;
     toast('Tarea actualizada.');
   } else {
@@ -485,6 +570,8 @@ async function deleteTask(taskId) {
     toast(error.message);
     return;
   }
+
+  if (state.timer.taskId === taskId) resetTimer();
 
   await fetchTasks();
   render();
@@ -537,6 +624,7 @@ async function createExamPlan(event) {
     if (tasksError) return toast(tasksError.message);
   }
 
+  state.examSummary = { fecha_inicio, fecha_examen, nombre };
   await fetchTasks();
   render();
   toast(`Plan de examen generado (${tasks.length} tareas).`);
@@ -549,6 +637,68 @@ function shiftMonth(offset) {
   render();
 }
 
+function startTaskTimer(taskId) {
+  const task = state.tasks.find((item) => String(item.id) === String(taskId));
+  if (!task) return;
+
+  if (state.timer.taskId !== task.id) {
+    state.timer.taskId = task.id;
+    state.timer.remainingSeconds = Number(task.minutos) * 60;
+    state.timer.doneTaskName = task.nombre;
+  } else if (state.timer.remainingSeconds <= 0) {
+    state.timer.remainingSeconds = Number(task.minutos) * 60;
+  }
+
+  state.timer.running = true;
+
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    if (!state.timer.running) return;
+    state.timer.remainingSeconds -= 1;
+    if (state.timer.remainingSeconds <= 0) {
+      state.timer.remainingSeconds = 0;
+      state.timer.running = false;
+      state.timer.doneModalOpen = true;
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    render();
+  }, 1000);
+
+  render();
+}
+
+function pauseTaskTimer(taskId) {
+  if (state.timer.taskId && String(state.timer.taskId) === String(taskId)) {
+    state.timer.running = false;
+    render();
+  }
+}
+
+function submitTask(taskId) {
+  const task = state.tasks.find((item) => String(item.id) === String(taskId));
+  if (!task) return;
+
+  if (state.timer.taskId && String(state.timer.taskId) === String(taskId)) {
+    resetTimer();
+  }
+
+  toast(`Tarea entregada: ${task.nombre}`);
+}
+
+function resetTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+
+  state.timer.taskId = null;
+  state.timer.remainingSeconds = 0;
+  state.timer.running = false;
+  state.timer.doneModalOpen = false;
+  state.timer.doneTaskName = '';
+}
+
 function bindEvents() {
   const authForm = document.getElementById('auth-form');
   if (authForm) authForm.addEventListener('submit', handleAuth);
@@ -559,8 +709,27 @@ function bindEvents() {
   const openRegisterPanelBtn = document.getElementById('open-register-panel');
   if (openRegisterPanelBtn) {
     openRegisterPanelBtn.addEventListener('click', () => {
-      state.registerPanelOpen = !state.registerPanelOpen;
+      state.registerPanelOpen = true;
       state.authError = '';
+      state.registerError = '';
+      render();
+    });
+  }
+
+  const closeRegisterPanelBtn = document.getElementById('close-register-panel');
+  if (closeRegisterPanelBtn) {
+    closeRegisterPanelBtn.addEventListener('click', () => {
+      state.registerPanelOpen = false;
+      state.registerError = '';
+      render();
+    });
+  }
+
+  const registerOverlay = document.getElementById('register-overlay');
+  if (registerOverlay) {
+    registerOverlay.addEventListener('click', () => {
+      state.registerPanelOpen = false;
+      state.registerError = '';
       render();
     });
   }
@@ -644,6 +813,26 @@ function bindEvents() {
   document.querySelectorAll('[data-delete-task]').forEach((el) => {
     el.addEventListener('click', () => deleteTask(el.dataset.deleteTask));
   });
+
+  document.querySelectorAll('[data-start-timer]').forEach((el) => {
+    el.addEventListener('click', () => startTaskTimer(el.dataset.startTimer));
+  });
+
+  document.querySelectorAll('[data-pause-timer]').forEach((el) => {
+    el.addEventListener('click', () => pauseTaskTimer(el.dataset.pauseTimer));
+  });
+
+  document.querySelectorAll('[data-submit-task]').forEach((el) => {
+    el.addEventListener('click', () => submitTask(el.dataset.submitTask));
+  });
+
+  const closeDoneModal = document.getElementById('close-done-modal');
+  if (closeDoneModal) {
+    closeDoneModal.addEventListener('click', () => {
+      state.timer.doneModalOpen = false;
+      render();
+    });
+  }
 }
 
 initSession();

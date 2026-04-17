@@ -79,20 +79,6 @@ body {
   animation: fadeIn 260ms ease;
 }
 
-.register-panel {
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  transform: translateY(-4px);
-  transition: max-height 260ms ease, opacity 220ms ease, transform 220ms ease;
-}
-
-.register-panel.open {
-  max-height: 380px;
-  opacity: 1;
-  transform: translateY(0);
-}
-
 .reload-pill {
   transition: transform 220ms ease, box-shadow 220ms ease;
 }
@@ -103,6 +89,29 @@ body {
 
 .reload-pill.is-loading {
   animation: pulseLoop 900ms ease-in-out infinite;
+}
+
+.spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  animation: spin 0.8s linear infinite;
+}
+
+.spinner.dark {
+  border-color: rgba(63, 63, 70, 0.25);
+  border-top-color: rgb(24, 24, 27);
+}
+
+.timer-text {
+  font-variant-numeric: tabular-nums;
+}
+
+.modal-panel {
+  max-width: 28rem;
 }
 
 @keyframes popIn {
@@ -134,5 +143,11 @@ body {
   }
   70% {
     box-shadow: 0 0 0 12px rgba(37, 99, 235, 0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
