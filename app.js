@@ -26,7 +26,6 @@ const state = {
     taskId: null,
     remainingSeconds: 0,
     running: false,
-    doneModalOpen: false,
     doneTaskName: '',
   },
 };
@@ -36,23 +35,6 @@ let timerInterval = null;
 const app = document.getElementById('app');
 
 const WEEK_DAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-
-function applyTheme() {
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const effective = state.mode === 'system' ? (prefersDark ? 'dark' : 'light') : state.mode;
-  document.documentElement.classList.toggle('dark', effective === 'dark');
-}
-
-function setTheme(mode) {
-  state.mode = mode;
-  localStorage.setItem('focusflow-theme', mode);
-  applyTheme();
-  render();
-}
-
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-  if (state.mode === 'system') applyTheme();
-});
 
 function monthKey(date) {
   const d = new Date(date);
@@ -172,7 +154,6 @@ async function fetchProfile() {
 }
 
 async function initSession() {
-  applyTheme();
   const { data, error } = await supabase.auth.getSession();
   if (error) toast(error.message);
   state.session = data.session;
@@ -209,9 +190,6 @@ function authView() {
             <img src="assets/logo-focusflow.svg" alt="Logo FocusFlow" class="h-11 w-11 rounded-2xl" />
             <h1 class="text-2xl font-semibold">FocusFlow</h1>
           </div>
-          <button data-theme="${state.mode === 'dark' ? 'light' : 'dark'}" class="rounded-xl border border-zinc-200 px-3 py-1.5 text-xs hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
-            ${state.mode === 'dark' ? 'Modo claro' : 'Modo oscuro'}
-          </button>
         </div>
         <p class="mt-1 text-sm text-zinc-500">Productividad, tareas y estudio inteligente.</p>
 
@@ -241,7 +219,6 @@ function registerPanelView() {
       </div>
       <form id="register-form" class="mt-3 space-y-2">
         <input required name="register_email" type="email" placeholder="E-mail" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
-        <input required name="username" type="text" placeholder="Nombre de usuario" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
         <input required name="register_password" type="password" placeholder="Contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
         <input required name="confirm_password" type="password" placeholder="Repite la contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
         ${state.registerError ? `<p class="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-950/20 dark:text-red-300">${state.registerError}</p>` : ''}
@@ -282,7 +259,7 @@ function dayPanelView() {
                   <div>
                     <p class="font-medium">${task.nombre}</p>
                     <p class="text-sm text-zinc-500">${task.minutos} min · ${task.tipo === 'exam' ? 'Plan examen' : 'Tarea'}</p>
-                    <p class="timer-text mt-1 text-sm font-semibold text-blue-600 dark:text-blue-300">${isTimerTask ? formatSeconds(state.timer.remainingSeconds) : formatSeconds(Number(task.minutos) * 60)}</p>
+                    <p id="timer-${task.id}" class="timer-text mt-1 text-sm font-semibold text-blue-600 dark:text-blue-300">${isTimerTask ? formatSeconds(state.timer.remainingSeconds) : formatSeconds(Number(task.minutos) * 60)}</p>
                   </div>
                   <div class="flex gap-1">
                     <button data-edit-task="${task.id}" class="rounded-lg border border-zinc-200 px-2 py-1 text-xs hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Editar</button>
@@ -290,7 +267,7 @@ function dayPanelView() {
                   </div>
                 </div>
                 <div class="mt-3 flex flex-wrap gap-2">
-                  <button data-start-timer="${task.id}" class="rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs text-white hover:bg-blue-500">${isTimerTask && state.timer.running ? 'Reiniciar' : 'Iniciar'}</button>
+                  <button data-start-timer="${task.id}" class="rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs text-white hover:bg-blue-500">Iniciar</button>
                   <button data-pause-timer="${task.id}" class="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Pausar</button>
                   <button data-submit-task="${task.id}" class="rounded-lg border border-emerald-300 px-2.5 py-1.5 text-xs text-emerald-700 hover:bg-emerald-50">Entregar</button>
                 </div>
@@ -347,18 +324,7 @@ function appView() {
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <div class="rounded-2xl border border-zinc-200 bg-zinc-100 p-1 dark:border-zinc-700 dark:bg-zinc-800">
-            ${['light', 'dark', 'system']
-              .map(
-                (mode) => `
-                <button data-theme="${mode}" class="rounded-xl px-3 py-1.5 text-sm ${
-                  state.mode === mode ? 'bg-white dark:bg-zinc-900 shadow-soft' : ''
-                }">${mode === 'light' ? 'Claro' : mode === 'dark' ? 'Oscuro' : 'Sistema'}</button>`
-              )
-              .join('')}
-          </div>
           <button id="logout" class="rounded-xl border border-zinc-200 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Logout</button>
-          <button id="refresh-app" class="reload-pill h-11 w-11 rounded-full bg-blue-600 text-xs font-semibold text-white shadow-soft hover:bg-blue-500" title="Preparando">Preparando</button>
         </div>
       </header>
 
@@ -425,7 +391,6 @@ function appView() {
         ${dayPanelView()}
       </aside>
 
-      ${state.timer.doneModalOpen ? `<div class="fixed inset-0 z-[65] grid place-items-center bg-black/40"><section class="w-[92%] max-w-sm rounded-2xl border border-zinc-200 bg-white p-5 text-center shadow-soft dark:border-zinc-700 dark:bg-zinc-900"><h3 class="text-lg font-semibold">Tiempo acabado</h3><p class="mt-2 text-sm text-zinc-500">La tarea <strong>${state.timer.doneTaskName}</strong> ha finalizado.</p><button id="close-done-modal" class="mt-4 rounded-xl bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-500">Aceptar</button></section></div>` : ''}
       ${state.toast ? `<div class="fixed left-1/2 top-4 z-[60] -translate-x-1/2 rounded-xl bg-zinc-900 px-4 py-2 text-sm text-white shadow-soft dark:bg-zinc-100 dark:text-zinc-900">${state.toast}</div>` : ''}
     </main>
   `;
@@ -478,7 +443,7 @@ async function handleRegister(event) {
 
   const formData = new FormData(event.target);
   const email = String(formData.get('register_email')).trim();
-  const username = String(formData.get('username')).trim();
+  const username = email.split('@')[0] || 'usuario';
   const password = String(formData.get('register_password')).trim();
   const confirmPassword = String(formData.get('confirm_password')).trim();
 
@@ -658,11 +623,11 @@ function startTaskTimer(taskId) {
     if (state.timer.remainingSeconds <= 0) {
       state.timer.remainingSeconds = 0;
       state.timer.running = false;
-      state.timer.doneModalOpen = true;
       clearInterval(timerInterval);
       timerInterval = null;
+      toast(`Tiempo terminado: ${state.timer.doneTaskName}`);
     }
-    render();
+    updateTimerDisplay();
   }, 1000);
 
   render();
@@ -675,14 +640,36 @@ function pauseTaskTimer(taskId) {
   }
 }
 
-function submitTask(taskId) {
+function updateTimerDisplay() {
+  if (!state.timer.taskId) return;
+  const timerNode = document.getElementById(`timer-${state.timer.taskId}`);
+  if (timerNode) {
+    timerNode.textContent = formatSeconds(state.timer.remainingSeconds);
+  }
+}
+
+async function submitTask(taskId) {
   const task = state.tasks.find((item) => String(item.id) === String(taskId));
   if (!task) return;
 
-  if (state.timer.taskId && String(state.timer.taskId) === String(taskId)) {
+  const isCurrentTimerTask = state.timer.taskId && String(state.timer.taskId) === String(taskId);
+  if (isCurrentTimerTask) {
     resetTimer();
   }
 
+  const { error } = await supabase
+    .from('tasks')
+    .delete()
+    .eq('id', taskId)
+    .eq('user_id', state.session.user.id);
+
+  if (error) {
+    toast(error.message);
+    return;
+  }
+
+  await fetchTasks();
+  render();
   toast(`Tarea entregada: ${task.nombre}`);
 }
 
@@ -695,7 +682,6 @@ function resetTimer() {
   state.timer.taskId = null;
   state.timer.remainingSeconds = 0;
   state.timer.running = false;
-  state.timer.doneModalOpen = false;
   state.timer.doneTaskName = '';
 }
 
@@ -741,10 +727,6 @@ function bindEvents() {
     });
   }
 
-  document.querySelectorAll('[data-theme]').forEach((el) => {
-    el.addEventListener('click', () => setTheme(el.dataset.theme));
-  });
-
   document.querySelectorAll('[data-date]').forEach((el) => {
     el.addEventListener('click', () => {
       state.selectedDate = el.dataset.date;
@@ -758,18 +740,6 @@ function bindEvents() {
 
   const next = document.getElementById('next-month');
   if (next) next.addEventListener('click', () => shiftMonth(1));
-
-  const refreshApp = document.getElementById('refresh-app');
-  if (refreshApp) {
-    refreshApp.addEventListener('click', async () => {
-      refreshApp.classList.add('is-loading');
-      if (state.session) {
-        await fetchTasks();
-      }
-      render();
-      toast('Preparando página...');
-    });
-  }
 
   const panelBtn = document.getElementById('open-panel');
   if (panelBtn) panelBtn.addEventListener('click', () => setPanel(true));
@@ -826,13 +796,6 @@ function bindEvents() {
     el.addEventListener('click', () => submitTask(el.dataset.submitTask));
   });
 
-  const closeDoneModal = document.getElementById('close-done-modal');
-  if (closeDoneModal) {
-    closeDoneModal.addEventListener('click', () => {
-      state.timer.doneModalOpen = false;
-      render();
-    });
-  }
 }
 
 initSession();
