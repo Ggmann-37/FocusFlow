@@ -16,6 +16,8 @@ const state = {
   mode: localStorage.getItem('focusflow-theme') || 'system',
   loading: true,
   toast: '',
+  authError: '',
+  registerPanelOpen: false,
 };
 
 const app = document.getElementById('app');
@@ -173,16 +175,33 @@ async function initSession() {
 function authView() {
   return `
     <main class="flex min-h-screen items-center justify-center p-5">
-      <section class="w-full max-w-md rounded-3xl border border-zinc-200 bg-white p-6 shadow-soft dark:border-zinc-800 dark:bg-zinc-900 fade-in">
-        <h1 class="text-2xl font-semibold">FocusFlow</h1>
+      <section class="auth-card w-full max-w-md rounded-3xl border border-zinc-200 bg-white p-6 shadow-soft dark:border-zinc-800 dark:bg-zinc-900 fade-in">
+        <div class="mb-3 flex items-center justify-between gap-2">
+          <h1 class="text-2xl font-semibold">FocusFlow</h1>
+          <button data-theme="${state.mode === 'dark' ? 'light' : 'dark'}" class="rounded-xl border border-zinc-200 px-3 py-1.5 text-xs hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
+            ${state.mode === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+          </button>
+        </div>
         <p class="mt-1 text-sm text-zinc-500">Productividad, tareas y estudio inteligente.</p>
 
         <form id="auth-form" class="mt-6 space-y-3">
           <input required name="email" type="email" placeholder="Email" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
           <input required name="password" type="password" placeholder="Contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
+          ${state.authError ? `<p class="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-950/20 dark:text-red-300">${state.authError}</p>` : ''}
           <button data-mode="login" class="w-full rounded-xl bg-blue-600 py-2 text-white hover:bg-blue-500">Entrar</button>
-          <button data-mode="register" class="w-full rounded-xl border border-zinc-200 py-2 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Crear cuenta</button>
+          <button type="button" id="open-register-panel" class="w-full rounded-xl border border-zinc-200 py-2 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Crear cuenta</button>
         </form>
+
+        <section class="register-panel mt-4 rounded-2xl border border-zinc-200 p-4 dark:border-zinc-700 ${state.registerPanelOpen ? 'open' : ''}">
+          <h2 class="text-sm font-semibold">Crear cuenta nueva</h2>
+          <form id="register-form" class="mt-3 space-y-2">
+            <input required name="register_email" type="email" placeholder="Email" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
+            <input required name="username" type="text" placeholder="Nombre de usuario" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
+            <input required name="register_password" type="password" placeholder="Contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
+            <input required name="confirm_password" type="password" placeholder="Repite la contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
+            <button data-mode="register" class="w-full rounded-xl bg-violet-600 py-2 text-white hover:bg-violet-500">Crear cuenta ahora</button>
+          </form>
+        </section>
       </section>
     </main>
   `;
@@ -272,6 +291,7 @@ function appView() {
               .join('')}
           </div>
           <button id="logout" class="rounded-xl border border-zinc-200 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Logout</button>
+          <button id="refresh-app" class="reload-pill h-11 w-11 rounded-full bg-blue-600 text-xs font-semibold text-white shadow-soft hover:bg-blue-500" title="Preparando">Preparando</button>
         </div>
       </header>
 
@@ -374,13 +394,46 @@ async function handleAuth(event) {
   const email = String(formData.get('email')).trim();
   const password = String(formData.get('password')).trim();
 
+  state.authError = '';
   const action = mode === 'login' ? 'signInWithPassword' : 'signUp';
   const { error } = await supabase.auth[action]({ email, password });
 
   if (error) {
+    state.authError = 'Contraseña incorrecta. Revisa tus datos.';
+    if (!/invalid login credentials|invalid_credentials/i.test(error.message)) {
+      state.authError = error.message;
+    }
+    render();
+  }
+}
+
+async function handleRegister(event) {
+  event.preventDefault();
+  const formData = new FormData(event.target);
+  const email = String(formData.get('register_email')).trim();
+  const username = String(formData.get('username')).trim();
+  const password = String(formData.get('register_password')).trim();
+  const confirmPassword = String(formData.get('confirm_password')).trim();
+
+  if (password !== confirmPassword) {
+    toast('Revisar: las contraseñas no coinciden.');
+    return;
+  }
+
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { username },
+    },
+  });
+
+  if (error) {
     toast(error.message);
-  } else if (mode === 'register') {
+  } else {
+    state.registerPanelOpen = false;
     toast('Cuenta creada. Revisa tu correo si la confirmación está habilitada.');
+    render();
   }
 }
 
@@ -500,6 +553,18 @@ function bindEvents() {
   const authForm = document.getElementById('auth-form');
   if (authForm) authForm.addEventListener('submit', handleAuth);
 
+  const registerForm = document.getElementById('register-form');
+  if (registerForm) registerForm.addEventListener('submit', handleRegister);
+
+  const openRegisterPanelBtn = document.getElementById('open-register-panel');
+  if (openRegisterPanelBtn) {
+    openRegisterPanelBtn.addEventListener('click', () => {
+      state.registerPanelOpen = !state.registerPanelOpen;
+      state.authError = '';
+      render();
+    });
+  }
+
   const logoutBtn = document.getElementById('logout');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
@@ -524,6 +589,18 @@ function bindEvents() {
 
   const next = document.getElementById('next-month');
   if (next) next.addEventListener('click', () => shiftMonth(1));
+
+  const refreshApp = document.getElementById('refresh-app');
+  if (refreshApp) {
+    refreshApp.addEventListener('click', async () => {
+      refreshApp.classList.add('is-loading');
+      if (state.session) {
+        await fetchTasks();
+      }
+      render();
+      toast('Preparando página...');
+    });
+  }
 
   const panelBtn = document.getElementById('open-panel');
   if (panelBtn) panelBtn.addEventListener('click', () => setPanel(true));
