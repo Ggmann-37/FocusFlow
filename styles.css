@@ -1,0 +1,246 @@
+:root {
+  --bg: #f5f7ff;
+  --card: #ffffff;
+  --text: #20253a;
+  --muted: #5e6480;
+  --primary: #5d5fef;
+  --danger: #d64545;
+  --success: #138a4f;
+  --border: #d9ddf5;
+  --shadow: 0 12px 30px rgba(24, 40, 92, 0.1);
+}
+
+body.dark {
+  --bg: #111423;
+  --card: #1a1f34;
+  --text: #f0f3ff;
+  --muted: #a9b1d1;
+  --primary: #7c7eff;
+  --danger: #ff7d7d;
+  --success: #4cd197;
+  --border: #2d355c;
+  --shadow: 0 14px 32px rgba(0, 0, 0, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  transition: background 0.35s ease, color 0.35s ease;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+}
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 1rem;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.1rem;
+  box-shadow: var(--shadow);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}
+
+.tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.tab,
+.btn {
+  border: none;
+  border-radius: 10px;
+  padding: 0.6rem 0.85rem;
+  cursor: pointer;
+  transition: transform 0.18s ease, filter 0.2s ease, background 0.25s ease;
+}
+
+.tab {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.tab.active {
+  color: #fff;
+  background: var(--primary);
+}
+
+.tab:hover,
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.form {
+  display: none;
+  gap: 0.65rem;
+}
+
+.form.active {
+  display: grid;
+  animation: fadeIn 0.25s ease;
+}
+
+label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.95rem;
+}
+
+input {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  padding: 0.55rem 0.65rem;
+}
+
+.error {
+  min-height: 1.2rem;
+  color: var(--danger);
+  margin: 0;
+}
+
+.success {
+  min-height: 1.2rem;
+  color: var(--success);
+  margin: 0;
+}
+
+.exam-list {
+  list-style: none;
+  margin: 0.85rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.exam-list li {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.7rem;
+  background: color-mix(in oklab, var(--card), var(--bg) 20%);
+  animation: popIn 0.25s ease;
+}
+
+.loader-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 0.8rem;
+  background: color-mix(in oklab, var(--bg), black 12%);
+  z-index: 999;
+  transition: opacity 0.35s ease;
+}
+
+.loader-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.spinner {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 4px solid color-mix(in oklab, var(--primary), white 35%);
+  border-top-color: transparent;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto;
+}
+
+.fade-in-down {
+  animation: fadeDown 0.45s ease;
+}
+
+.slide-up {
+  animation: slideUp 0.45s ease;
+}
+
+.delayed {
+  animation-delay: 0.1s;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeDown {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

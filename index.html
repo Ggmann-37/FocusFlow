@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FocusFlow</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="loader" class="loader-overlay" aria-live="polite">
+      <div class="spinner" aria-hidden="true"></div>
+      <p>Preparando...</p>
+    </div>
+
+    <header class="topbar fade-in-down">
+      <h1>FocusFlow</h1>
+      <button id="themeToggle" class="btn btn-secondary" type="button" aria-label="Cambiar tema">
+        🌙 Modo oscuro
+      </button>
+    </header>
+
+    <main class="container">
+      <section class="card slide-up" id="auth">
+        <div class="tabs">
+          <button class="tab active" data-tab="login" type="button">Iniciar sesión</button>
+          <button class="tab" data-tab="register" type="button">Crear cuenta</button>
+        </div>
+
+        <form id="loginForm" class="form active" novalidate>
+          <label>
+            E-mail
+            <input type="email" id="loginEmail" required autocomplete="email" />
+          </label>
+          <label>
+            Contraseña
+            <input type="password" id="loginPassword" required autocomplete="current-password" />
+          </label>
+          <p class="error" id="loginError" role="alert"></p>
+          <button class="btn" type="submit">Entrar</button>
+        </form>
+
+        <form id="registerForm" class="form" novalidate>
+          <label>
+            Nombre de usuario
+            <input type="text" id="regUsername" required minlength="3" autocomplete="username" />
+          </label>
+          <label>
+            E-mail
+            <input type="email" id="regEmail" required autocomplete="email" />
+          </label>
+          <label>
+            Contraseña
+            <input type="password" id="regPassword" required minlength="6" autocomplete="new-password" />
+          </label>
+          <label>
+            Repetir contraseña
+            <input type="password" id="regPassword2" required minlength="6" autocomplete="new-password" />
+          </label>
+          <p class="error" id="registerError" role="alert"></p>
+          <p class="success" id="registerSuccess"></p>
+          <button class="btn" type="submit">Crear cuenta</button>
+        </form>
+      </section>
+
+      <section class="card slide-up delayed" id="examSection">
+        <h2>Añadir examen</h2>
+        <form id="examForm" novalidate>
+          <label>
+            Nombre del examen
+            <input type="text" id="examName" required />
+          </label>
+          <label>
+            Fecha de inicio de estudio
+            <input type="date" id="studyStart" required />
+          </label>
+          <label>
+            Fecha del examen
+            <input type="date" id="examDate" required />
+          </label>
+          <p class="error" id="examError" role="alert"></p>
+          <button class="btn" type="submit">Guardar examen</button>
+        </form>
+        <ul id="examList" class="exam-list"></ul>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
