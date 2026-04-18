@@ -22,6 +22,9 @@ const state = {
   registerLoading: false,
   registerError: '',
   examSummary: null,
+  todayTasksModalOpen: false,
+  notificationsRequested: false,
+  notificationPermission: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
   timer: {
     taskId: null,
     remainingSeconds: 0,
@@ -60,6 +63,10 @@ function toHumanDate(dateStr) {
     month: '2-digit',
     year: 'numeric',
   });
+}
+
+function todayISO() {
+  return formatDate(new Date());
 }
 
 function monthLabel(monthStr) {
@@ -161,6 +168,8 @@ async function initSession() {
 
   if (state.session) {
     await Promise.all([fetchTasks(), fetchProfile()]);
+    openTodayTasksPanel();
+    await requestNotificationPermissionIfNeeded();
   }
 
   supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -171,9 +180,14 @@ async function initSession() {
 
     if (session) {
       await Promise.all([fetchTasks(), fetchProfile()]);
+      openTodayTasksPanel();
+      await requestNotificationPermissionIfNeeded();
     } else {
       state.tasks = [];
       state.profile = null;
+      state.todayTasksModalOpen = false;
+      state.notificationsRequested = false;
+      state.notificationPermission = typeof Notification !== 'undefined' ? Notification.permission : 'unsupported';
     }
     render();
   });
@@ -283,7 +297,7 @@ function dayPanelView() {
         <h3 class="font-semibold">${editingTask ? 'Editar tarea' : 'Nueva tarea'}</h3>
         <input required name="nombre" value="${editingTask ? editingTask.nombre : ''}" placeholder="Nombre" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
         <input required min="1" name="minutos" type="number" value="${editingTask ? editingTask.minutos : 30}" placeholder="Minutos" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
-        <input required name="fecha" type="date" value="${editingTask ? editingTask.fecha : state.selectedDate}" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
+        <input required min="${todayISO()}" name="fecha" type="date" value="${editingTask ? editingTask.fecha : state.selectedDate}" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
         <div class="flex gap-2">
           <button class="rounded-xl bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500">${editingTask ? 'Guardar cambios' : 'Crear tarea'}</button>
           ${editingTask ? '<button type="button" id="cancel-edit" class="rounded-xl border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">Cancelar</button>' : ''}
@@ -293,8 +307,13 @@ function dayPanelView() {
       <form id="exam-form" class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 space-y-2">
         <h3 class="font-semibold">Planificar examen</h3>
         <input required name="nombre" placeholder="Nombre examen" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
-        <input required name="fecha_examen" type="date" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
-        <input required name="fecha_inicio" type="date" value="${state.selectedDate}" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
+        <div class="rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 to-violet-50 px-3 py-2 text-xs text-blue-900 dark:border-blue-900/60 dark:from-blue-950/30 dark:to-violet-950/30 dark:text-blue-200">
+          <p class="font-semibold">Guía rápida de fechas</p>
+          <p class="mt-1"><strong>Fecha examen:</strong> día oficial en el que haces el examen.</p>
+          <p><strong>Fecha inicio:</strong> primer día desde el que quieres empezar el plan de estudio.</p>
+        </div>
+        <input required min="${todayISO()}" name="fecha_examen" type="date" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
+        <input required min="${todayISO()}" name="fecha_inicio" type="date" value="${state.selectedDate}" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
         <input required min="1" name="minutos_diarios" type="number" value="60" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
         <button class="rounded-xl bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-500">Generar plan automático</button>
         ${
@@ -312,6 +331,14 @@ function appView() {
   const dailyMinutes = minutesForDate(state.selectedDate);
   const weekTotal = weekMinutes(state.selectedDate);
   const { start, end } = getWeekBounds(state.selectedDate);
+  const today = todayISO();
+  const todayLabel = new Date(`${today}T12:00:00`).toLocaleDateString('es-ES', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+  const todayTasks = tasksForDate(today);
 
   return `
     <main class="mx-auto max-w-7xl p-4 md:p-8 space-y-5">
@@ -321,6 +348,7 @@ function appView() {
           <div>
             <h1 class="text-2xl font-semibold">FocusFlow</h1>
             <p class="text-sm text-zinc-500">Calendario, tareas y estudio automático para exámenes${state.profile?.username ? ` · @${state.profile.username}` : ''}</p>
+            <p class="text-sm text-blue-600 dark:text-blue-300">Hoy: ${todayLabel}</p>
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
@@ -390,6 +418,38 @@ function appView() {
         </div>
         ${dayPanelView()}
       </aside>
+
+      ${
+        state.todayTasksModalOpen
+          ? `
+        <div id="today-tasks-overlay" class="fixed inset-0 z-[70] bg-black/40"></div>
+        <section class="fixed left-1/2 top-1/2 z-[80] w-[92%] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-zinc-200 bg-white p-5 shadow-soft dark:border-zinc-700 dark:bg-zinc-900">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h3 class="text-lg font-semibold">Tus tareas de hoy (${toHumanDate(today)})</h3>
+              <p class="text-sm text-zinc-500">${todayTasks.length ? 'Empieza por la más importante.' : 'Hoy no tienes tareas programadas.'}</p>
+            </div>
+            <button id="close-today-tasks-modal" class="rounded-lg border border-zinc-200 px-2 py-1 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Cerrar</button>
+          </div>
+          <div class="mt-3 max-h-60 space-y-2 overflow-y-auto">
+            ${
+              todayTasks.length
+                ? todayTasks
+                    .map(
+                      (task) =>
+                        `<article class="rounded-xl border border-zinc-200 p-3 text-sm dark:border-zinc-700">
+                          <p class="font-medium">${task.nombre}</p>
+                          <p class="text-zinc-500">${task.minutos} min · ${task.tipo === 'exam' ? 'Plan examen' : 'Tarea'}</p>
+                        </article>`,
+                    )
+                    .join('')
+                : '<p class="text-sm text-zinc-500">Añade tareas desde el panel de día para organizarte.</p>'
+            }
+          </div>
+        </section>
+      `
+          : ''
+      }
 
       ${state.toast ? `<div class="fixed left-1/2 top-4 z-[60] -translate-x-1/2 rounded-xl bg-zinc-900 px-4 py-2 text-sm text-white shadow-soft dark:bg-zinc-100 dark:text-zinc-900">${state.toast}</div>` : ''}
     </main>
@@ -502,6 +562,10 @@ async function upsertTask(event) {
     toast('Completa todos los campos de tarea correctamente.');
     return;
   }
+  if (payload.fecha < todayISO()) {
+    toast('No puedes crear tareas en días anteriores a hoy.');
+    return;
+  }
 
   if (state.editTaskId) {
     const { error } = await supabase
@@ -554,6 +618,10 @@ async function createExamPlan(event) {
     toast('Completa todos los datos del examen.');
     return;
   }
+  if (fecha_inicio < todayISO() || fecha_examen < todayISO()) {
+    toast('No puedes planificar exámenes en fechas anteriores a hoy.');
+    return;
+  }
 
   if (fecha_inicio > fecha_examen) {
     toast('La fecha de inicio no puede ser posterior al examen.');
@@ -602,6 +670,70 @@ function shiftMonth(offset) {
   render();
 }
 
+function playAlarmSound() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return;
+  const context = new AudioContextClass();
+  const now = context.currentTime;
+  const frequencies = [880, 660, 880];
+
+  frequencies.forEach((frequency, index) => {
+    const oscillator = context.createOscillator();
+    const gainNode = context.createGain();
+    oscillator.type = 'sine';
+    oscillator.frequency.value = frequency;
+    gainNode.gain.setValueAtTime(0.0001, now + index * 0.25);
+    gainNode.gain.exponentialRampToValueAtTime(0.25, now + index * 0.25 + 0.02);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + index * 0.25 + 0.22);
+    oscillator.connect(gainNode);
+    gainNode.connect(context.destination);
+    oscillator.start(now + index * 0.25);
+    oscillator.stop(now + index * 0.25 + 0.24);
+  });
+}
+
+function notifyTimerDone(taskName) {
+  if (typeof Notification === 'undefined') return;
+  if (Notification.permission !== 'granted') return;
+  new Notification('⏰ FocusFlow', {
+    body: `Se acabó el tiempo de: ${taskName}`,
+    icon: 'assets/logo-focusflow.svg',
+    badge: 'assets/logo-focusflow.svg',
+  });
+}
+
+async function requestNotificationPermissionIfNeeded() {
+  if (state.notificationsRequested) return;
+  state.notificationsRequested = true;
+  if (typeof Notification === 'undefined') {
+    state.notificationPermission = 'unsupported';
+    return;
+  }
+
+  state.notificationPermission = Notification.permission;
+  if (Notification.permission === 'default') {
+    try {
+      const permission = await Notification.requestPermission();
+      state.notificationPermission = permission;
+      if (permission === 'granted') {
+        toast('Notificaciones de escritorio activadas.');
+      } else {
+        toast('No activaste las notificaciones de escritorio.');
+      }
+    } catch {
+      toast('No se pudo pedir permiso de notificaciones.');
+    }
+  }
+}
+
+function openTodayTasksPanel() {
+  const today = todayISO();
+  state.selectedDate = today;
+  state.currentMonth = monthKey(today);
+  state.panelOpen = true;
+  state.todayTasksModalOpen = true;
+}
+
 function startTaskTimer(taskId) {
   const task = state.tasks.find((item) => String(item.id) === String(taskId));
   if (!task) return;
@@ -626,6 +758,8 @@ function startTaskTimer(taskId) {
       clearInterval(timerInterval);
       timerInterval = null;
       toast(`Tiempo terminado: ${state.timer.doneTaskName}`);
+      playAlarmSound();
+      notifyTimerDone(state.timer.doneTaskName);
     }
     updateTimerDisplay();
   }, 1000);
@@ -758,6 +892,22 @@ function bindEvents() {
 
   const overlay = document.getElementById('overlay');
   if (overlay) overlay.addEventListener('click', () => setPanel(false));
+
+  const todayTasksOverlay = document.getElementById('today-tasks-overlay');
+  if (todayTasksOverlay) {
+    todayTasksOverlay.addEventListener('click', () => {
+      state.todayTasksModalOpen = false;
+      render();
+    });
+  }
+
+  const closeTodayTasksModal = document.getElementById('close-today-tasks-modal');
+  if (closeTodayTasksModal) {
+    closeTodayTasksModal.addEventListener('click', () => {
+      state.todayTasksModalOpen = false;
+      render();
+    });
+  }
 
   const taskForm = document.getElementById('task-form');
   if (taskForm) taskForm.addEventListener('submit', upsertTask);

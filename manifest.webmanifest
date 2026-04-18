@@ -1,0 +1,19 @@
+{
+  "name": "FocusFlow",
+  "short_name": "FocusFlow",
+  "description": "Calendario, tareas y estudio automático para exámenes.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fafafa",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "assets/logo-focusflow.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
