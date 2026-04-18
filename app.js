@@ -307,12 +307,13 @@ function dayPanelView() {
       <form id="exam-form" class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 space-y-2">
         <h3 class="font-semibold">Planificar examen</h3>
         <input required name="nombre" placeholder="Nombre examen" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
-        <div class="rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 to-violet-50 px-3 py-2 text-xs text-blue-900 dark:border-blue-900/60 dark:from-blue-950/30 dark:to-violet-950/30 dark:text-blue-200">
-          <p class="font-semibold">Guía rápida de fechas</p>
-          <p class="mt-1"><strong>Fecha examen:</strong> día oficial en el que haces el examen.</p>
-          <p><strong>Fecha inicio:</strong> primer día desde el que quieres empezar el plan de estudio.</p>
+        <div class="rounded-xl border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200">
+          Fecha del examen
         </div>
         <input required min="${todayISO()}" name="fecha_examen" type="date" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
+        <div class="rounded-xl border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-900 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-200">
+          Fecha de inicio
+        </div>
         <input required min="${todayISO()}" name="fecha_inicio" type="date" value="${state.selectedDate}" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
         <input required min="1" name="minutos_diarios" type="number" value="60" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
         <button class="rounded-xl bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-500">Generar plan automático</button>
