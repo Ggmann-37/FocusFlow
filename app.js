@@ -23,7 +23,6 @@ const state = {
   registerError: '',
   examSummary: null,
   todayTasksModalOpen: false,
-  notificationsRequested: false,
   notificationPermission: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
   timer: {
     taskId: null,
@@ -169,7 +168,7 @@ async function initSession() {
   if (state.session) {
     await Promise.all([fetchTasks(), fetchProfile()]);
     openTodayTasksPanel();
-    await requestNotificationPermissionIfNeeded();
+    updateNotificationPermissionState();
   }
 
   supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -181,12 +180,11 @@ async function initSession() {
     if (session) {
       await Promise.all([fetchTasks(), fetchProfile()]);
       openTodayTasksPanel();
-      await requestNotificationPermissionIfNeeded();
+      updateNotificationPermissionState();
     } else {
       state.tasks = [];
       state.profile = null;
       state.todayTasksModalOpen = false;
-      state.notificationsRequested = false;
       state.notificationPermission = typeof Notification !== 'undefined' ? Notification.permission : 'unsupported';
     }
     render();
@@ -340,9 +338,17 @@ function appView() {
     year: 'numeric',
   });
   const todayTasks = tasksForDate(today);
+  const showNotificationPrompt = state.notificationPermission === 'default';
 
   return `
     <main class="mx-auto max-w-7xl p-4 md:p-8 space-y-5">
+      ${
+        showNotificationPrompt
+          ? `<button id="request-notification-permission" class="sticky top-3 z-[65] w-full rounded-2xl border border-blue-200 bg-blue-50 px-4 py-2 text-left text-sm text-blue-900 shadow-sm hover:bg-blue-100 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200 dark:hover:bg-blue-900/30">
+              <strong>FocusFlow</strong> necesita tu permiso para activar las notificaciones de escritorio. Pulsa aquí para activarlas.
+            </button>`
+          : ''
+      }
       <header class="rounded-3xl border border-zinc-200 bg-white p-4 shadow-soft dark:border-zinc-800 dark:bg-zinc-900 flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-3">
           <img src="assets/logo-focusflow.svg" alt="Logo FocusFlow" class="h-11 w-11 rounded-2xl" />
@@ -703,27 +709,30 @@ function notifyTimerDone(taskName) {
   });
 }
 
-async function requestNotificationPermissionIfNeeded() {
-  if (state.notificationsRequested) return;
-  state.notificationsRequested = true;
+function updateNotificationPermissionState() {
   if (typeof Notification === 'undefined') {
     state.notificationPermission = 'unsupported';
     return;
   }
-
   state.notificationPermission = Notification.permission;
-  if (Notification.permission === 'default') {
-    try {
-      const permission = await Notification.requestPermission();
-      state.notificationPermission = permission;
-      if (permission === 'granted') {
-        toast('Notificaciones de escritorio activadas.');
-      } else {
-        toast('No activaste las notificaciones de escritorio.');
-      }
-    } catch {
-      toast('No se pudo pedir permiso de notificaciones.');
+}
+
+async function requestNotificationPermission() {
+  if (typeof Notification === 'undefined') {
+    toast('Tu navegador no soporta notificaciones de escritorio.');
+    return;
+  }
+  try {
+    const permission = await Notification.requestPermission();
+    state.notificationPermission = permission;
+    if (permission === 'granted') {
+      toast('Notificaciones de escritorio activadas.');
+    } else if (permission === 'denied') {
+      toast('Has bloqueado las notificaciones. Puedes cambiarlas en el navegador.');
     }
+    render();
+  } catch {
+    toast('No se pudo pedir permiso de notificaciones.');
   }
 }
 
@@ -907,6 +916,13 @@ function bindEvents() {
     closeTodayTasksModal.addEventListener('click', () => {
       state.todayTasksModalOpen = false;
       render();
+    });
+  }
+
+  const notificationPrompt = document.getElementById('request-notification-permission');
+  if (notificationPrompt) {
+    notificationPrompt.addEventListener('click', () => {
+      requestNotificationPermission();
     });
   }
 
