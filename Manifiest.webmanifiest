@@ -10,15 +10,9 @@
   "theme_color": "#2563eb",
   "icons": [
     {
-      "src": "assets/icon-512.svg",
+      "src": "assets/icon-512.jpg",
       "sizes": "512x512",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "assets/logo-focusflow.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "type": "image/jpeg",
       "purpose": "any maskable"
     }
   ]
