@@ -25,6 +25,7 @@ const state = {
   todayTasksModalOpen: false,
   createMode: false,
   notificationPermission: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
+  notificationPromptDismissed: sessionStorage.getItem('focusflow-notification-prompt-dismissed') === '1',
   timer: {
     taskId: null,
     remainingSeconds: 0,
@@ -358,15 +359,21 @@ function appView() {
     year: 'numeric',
   });
   const todayTasks = tasksForDate(today);
-  const showNotificationPrompt = state.notificationPermission === 'default';
+  const showNotificationPrompt = state.notificationPermission === 'default' && !state.notificationPromptDismissed;
 
   return `
     <main class="mx-auto max-w-7xl p-4 md:p-8 space-y-5">
       ${
         showNotificationPrompt
-          ? `<button id="request-notification-permission" class="sticky top-3 z-[65] w-full rounded-2xl border border-blue-200 bg-blue-50 px-4 py-2 text-left text-sm text-blue-900 shadow-sm hover:bg-blue-100 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200 dark:hover:bg-blue-900/30">
-              <strong>FocusFlow</strong> necesita tu permiso para activar las notificaciones de escritorio. Pulsa aquí para activarlas.
-            </button>`
+          ? `<section class="pointer-events-none fixed left-1/2 top-3 z-[65] w-[95%] max-w-xl -translate-x-1/2 md:top-4">
+              <div class="pointer-events-auto flex items-start gap-3 rounded-xl border border-blue-200/90 bg-white/95 px-3 py-2 text-sm text-blue-900 shadow-lg backdrop-blur dark:border-blue-900/70 dark:bg-zinc-900/95 dark:text-blue-200">
+                <button id="request-notification-permission" class="flex-1 text-left hover:opacity-90">
+                  <strong>Notificaciones de escritorio</strong><br />
+                  <span class="text-xs opacity-90">Actívalas para avisos del temporizador.</span>
+                </button>
+                <button id="dismiss-notification-prompt" class="rounded-md border border-blue-200 px-2 py-0.5 text-xs hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-900/30">Cerrar</button>
+              </div>
+            </section>`
           : ''
       }
       <header class="rounded-3xl border border-zinc-200 bg-white p-4 shadow-soft dark:border-zinc-800 dark:bg-zinc-900 flex flex-wrap items-center justify-between gap-3">
@@ -990,6 +997,15 @@ function bindEvents() {
   if (notificationPrompt) {
     notificationPrompt.addEventListener('click', () => {
       requestNotificationPermission();
+    });
+  }
+
+  const dismissNotificationPrompt = document.getElementById('dismiss-notification-prompt');
+  if (dismissNotificationPrompt) {
+    dismissNotificationPrompt.addEventListener('click', () => {
+      state.notificationPromptDismissed = true;
+      sessionStorage.setItem('focusflow-notification-prompt-dismissed', '1');
+      render();
     });
   }
 
