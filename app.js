@@ -2,8 +2,8 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 const SUPABASE_URL = 'https://pztdjbeyyuckhygobdla.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_9DWuwVmEnBqYlWdWmRqV5w_4_MPO1HD';
-const GH_PAGES_APP_URL = 'https://ggmann-37.github.io/FocusFlow/';
-const APP_BASE_PATH = '/FocusFlow/';
+const GH_PAGES_APP_URL = 'https://ggmann-37.github.io/';
+const APP_BASE_PATH = '/';
 
 function hasSupabaseAuthParams() {
   const raw = `${window.location.hash || ''}${window.location.search || ''}`;
@@ -11,7 +11,13 @@ function hasSupabaseAuthParams() {
 }
 
 function isAppBasePath() {
-  return window.location.pathname === APP_BASE_PATH || window.location.pathname === APP_BASE_PATH.slice(0, -1);
+  const normalize = (value) => {
+    if (!value) return '/';
+    const trimmed = value.replace(/\/+$/, '');
+    return trimmed || '/';
+  };
+
+  return normalize(window.location.pathname) === normalize(APP_BASE_PATH);
 }
 
 function cleanupAuthUrl() {
