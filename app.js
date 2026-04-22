@@ -2,8 +2,32 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 const SUPABASE_URL = 'https://pztdjbeyyuckhygobdla.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_9DWuwVmEnBqYlWdWmRqV5w_4_MPO1HD';
+const GH_PAGES_APP_URL = 'https://ggmann-37.github.io/FocusFlow/';
+const APP_BASE_PATH = '/FocusFlow/';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+function hasSupabaseAuthParams() {
+  const raw = `${window.location.hash || ''}${window.location.search || ''}`;
+  return /(access_token|refresh_token|expires_in|token_type|type)=/i.test(raw);
+}
+
+function isAppBasePath() {
+  return window.location.pathname === APP_BASE_PATH || window.location.pathname === APP_BASE_PATH.slice(0, -1);
+}
+
+function cleanupAuthUrl() {
+  if (!hasSupabaseAuthParams()) return;
+  const targetPath = isAppBasePath() ? window.location.pathname : APP_BASE_PATH;
+  const cleanUrl = `${targetPath}${window.location.search || ''}`;
+  window.history.replaceState({}, document.title, cleanUrl);
+}
+
+const shouldDetectSessionInUrl = hasSupabaseAuthParams() && isAppBasePath();
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    detectSessionInUrl: shouldDetectSessionInUrl,
+  },
+});
 
 const state = {
   session: null,
@@ -173,6 +197,7 @@ async function initSession() {
   const { data, error } = await supabase.auth.getSession();
   if (error) toast(error.message);
   state.session = data.session;
+  cleanupAuthUrl();
   state.loading = false;
 
   if (state.session) {
@@ -182,6 +207,7 @@ async function initSession() {
   }
 
   supabase.auth.onAuthStateChange(async (_event, session) => {
+    cleanupAuthUrl();
     state.session = session;
     state.editTaskId = null;
     state.examSummary = null;
@@ -605,6 +631,7 @@ async function handleRegister(event) {
     password,
     options: {
       data: { username },
+      emailRedirectTo: GH_PAGES_APP_URL,
     },
   });
 
