@@ -233,15 +233,15 @@ function authView() {
         <section class="grid gap-4 md:grid-cols-3">
           <article class="rounded-3xl border border-blue-100 bg-blue-200/70 p-6 text-center shadow-sm dark:border-blue-900/40 dark:bg-blue-950/30">
             <h3 class="text-2xl font-bold text-blue-700 dark:text-blue-300">Intuitivo</h3>
-            <p class="mt-2 text-sm text-zinc-700 dark:text-zinc-300">Interfaz clara para planificar tareas sin complicaciones y con pasos guiados.</p>
+            <p class="mt-2 text-sm text-zinc-700 dark:text-zinc-300">Diseño pensado para estudiantes: creas tareas, ves tu calendario y organizas cada día en pocos clics, sin menús confusos ni pasos innecesarios.</p>
           </article>
           <article class="rounded-3xl border border-violet-100 bg-violet-200/70 p-6 text-center shadow-sm dark:border-violet-900/40 dark:bg-violet-950/30">
             <h3 class="text-2xl font-bold text-violet-700 dark:text-violet-300">Gratis</h3>
-            <p class="mt-2 text-sm text-zinc-700 dark:text-zinc-300">Todas las funciones clave disponibles sin costes ocultos ni límites sorpresa.</p>
+            <p class="mt-2 text-sm text-zinc-700 dark:text-zinc-300">Disfruta de planificación automática de exámenes, temporizador y seguimiento diario sin pagar cuotas ni encontrarte con funciones bloqueadas a mitad de uso.</p>
           </article>
           <article class="rounded-3xl border border-indigo-100 bg-indigo-200/70 p-6 text-center shadow-sm dark:border-indigo-900/40 dark:bg-indigo-950/30">
             <h3 class="text-2xl font-bold text-indigo-700 dark:text-indigo-300">Seguro</h3>
-            <p class="mt-2 text-sm text-zinc-700 dark:text-zinc-300">Tus datos quedan protegidos en una infraestructura confiable y estable.</p>
+            <p class="mt-2 text-sm text-zinc-700 dark:text-zinc-300">Tu información académica se guarda en un entorno protegido y estable, con una experiencia fiable para que puedas centrarte en estudiar con tranquilidad.</p>
           </article>
         </section>
 
