@@ -22,8 +22,7 @@ function isAppBasePath() {
 
 function cleanupAuthUrl() {
   if (!hasSupabaseAuthParams()) return;
-  const targetPath = isAppBasePath() ? window.location.pathname : APP_BASE_PATH;
-  const cleanUrl = `${targetPath}${window.location.search || ''}`;
+  const cleanUrl = `${window.location.pathname}${window.location.search || ''}`;
   window.history.replaceState({}, document.title, cleanUrl);
 }
 
