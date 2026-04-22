@@ -18,6 +18,7 @@ const state = {
   toast: '',
   authError: '',
   authLoading: false,
+  loginPanelOpen: false,
   registerPanelOpen: false,
   registerLoading: false,
   registerError: '',
@@ -204,29 +205,73 @@ async function initSession() {
 
 function authView() {
   return `
-    <main class="flex min-h-screen items-center justify-center p-5">
-      <section class="auth-card w-full max-w-md rounded-3xl border border-zinc-200 bg-white p-6 shadow-soft dark:border-zinc-800 dark:bg-zinc-900 fade-in">
-        <div class="mb-3 flex items-center justify-between gap-2">
+    <main class="relative min-h-screen overflow-hidden bg-zinc-100 px-4 py-6 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100 md:px-8">
+      <div class="pointer-events-none absolute -left-20 top-0 h-64 w-64 rounded-full bg-blue-400/35 blur-3xl"></div>
+      <div class="pointer-events-none absolute -right-24 top-16 h-72 w-72 rounded-full bg-violet-400/30 blur-3xl"></div>
+
+      <section class="relative mx-auto max-w-6xl space-y-10">
+        <header class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/60 bg-white/80 p-3 shadow-soft backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/80">
           <div class="flex items-center gap-3">
             <img src="assets/logo-focusflow.svg" alt="Logo FocusFlow" class="h-11 w-11 rounded-2xl" />
-            <h1 class="text-2xl font-semibold">FocusFlow</h1>
+            <h1 class="text-2xl font-bold text-blue-600 dark:text-blue-300">FocusFlow</h1>
           </div>
-        </div>
-        <p class="mt-1 text-sm text-zinc-500">Productividad, tareas y estudio inteligente.</p>
+          <div class="flex gap-2">
+            <button id="open-login-panel" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">Iniciar sesión</button>
+            <button id="open-register-panel" class="rounded-xl border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:bg-zinc-900 dark:text-blue-300 dark:hover:bg-zinc-800">Regístrate</button>
+          </div>
+        </header>
 
-        <form id="auth-form" class="mt-6 space-y-3">
-          <input required name="email" type="email" placeholder="E-mail" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
-          <input required name="password" type="password" placeholder="Contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
-          ${state.authError ? `<p class="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-950/20 dark:text-red-300">${state.authError}</p>` : ''}
-          <button data-mode="login" ${state.authLoading ? 'disabled' : ''} class="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-2 text-white hover:bg-blue-500 disabled:opacity-70">
-            ${state.authLoading ? '<span class="spinner"></span> Iniciando...' : 'Iniciar sesión'}
-          </button>
-          <button type="button" id="open-register-panel" class="w-full rounded-xl border border-zinc-200 py-2 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Registrarse</button>
-        </form>
+        <section class="space-y-5 text-center">
+          <div class="mx-auto flex w-fit items-center gap-3 rounded-full border border-blue-200 bg-white px-4 py-3 shadow-sm dark:border-blue-900/50 dark:bg-zinc-900">
+            <img src="assets/logo-focusflow.svg" alt="Icono FocusFlow" class="h-12 w-12" />
+            <h2 class="text-4xl font-black tracking-wide text-blue-600 dark:text-blue-300 md:text-6xl">FOCUSFLOW</h2>
+          </div>
+          <p class="text-sm font-semibold uppercase tracking-[0.28em] text-blue-600/90 dark:text-blue-300">Planificación inteligente de exámenes y tareas</p>
+          <p class="mx-auto max-w-3xl text-sm text-zinc-600 dark:text-zinc-300 md:text-base">Organiza tu estudio diario, crea planes de examen automáticos y mantén el foco con temporizador y recordatorios.</p>
+        </section>
+
+        <section class="grid gap-4 md:grid-cols-3">
+          <article class="rounded-3xl border border-blue-100 bg-blue-200/70 p-6 text-center shadow-sm dark:border-blue-900/40 dark:bg-blue-950/30">
+            <h3 class="text-2xl font-bold text-blue-700 dark:text-blue-300">Intuitivo</h3>
+            <p class="mt-2 text-sm text-zinc-700 dark:text-zinc-300">Interfaz clara para planificar tareas sin complicaciones y con pasos guiados.</p>
+          </article>
+          <article class="rounded-3xl border border-violet-100 bg-violet-200/70 p-6 text-center shadow-sm dark:border-violet-900/40 dark:bg-violet-950/30">
+            <h3 class="text-2xl font-bold text-violet-700 dark:text-violet-300">Gratis</h3>
+            <p class="mt-2 text-sm text-zinc-700 dark:text-zinc-300">Todas las funciones clave disponibles sin costes ocultos ni límites sorpresa.</p>
+          </article>
+          <article class="rounded-3xl border border-indigo-100 bg-indigo-200/70 p-6 text-center shadow-sm dark:border-indigo-900/40 dark:bg-indigo-950/30">
+            <h3 class="text-2xl font-bold text-indigo-700 dark:text-indigo-300">Seguro</h3>
+            <p class="mt-2 text-sm text-zinc-700 dark:text-zinc-300">Tus datos quedan protegidos en una infraestructura confiable y estable.</p>
+          </article>
+        </section>
+
+        <footer class="pb-3 text-center text-sm font-semibold text-zinc-500">FocusFlow 2026</footer>
       </section>
 
+      ${state.loginPanelOpen ? loginPanelView() : ''}
       ${state.registerPanelOpen ? registerPanelView() : ''}
     </main>
+  `;
+}
+
+function loginPanelView() {
+  return `
+    <div id="login-overlay" class="fixed inset-0 z-40 bg-black/35"></div>
+    <section class="modal-panel fixed inset-0 z-50 m-auto h-fit w-[92%] rounded-2xl border border-zinc-200 bg-white p-5 shadow-soft dark:border-zinc-700 dark:bg-zinc-900">
+      <div class="flex items-center justify-between">
+        <h2 class="text-base font-semibold">Iniciar sesión</h2>
+        <button id="close-login-panel" class="rounded-lg border border-zinc-200 px-2 py-1 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Cerrar</button>
+      </div>
+      <form id="auth-form" class="mt-3 space-y-2">
+        <input required name="email" type="email" placeholder="Correo electrónico" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
+        <input required name="password" type="password" placeholder="Contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
+        ${state.authError ? `<p class="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-950/20 dark:text-red-300">${state.authError}</p>` : ''}
+        <button data-mode="login" ${state.authLoading ? 'disabled' : ''} class="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-2 text-white hover:bg-blue-500 disabled:opacity-70">
+          ${state.authLoading ? '<span class="spinner"></span> Iniciando...' : 'Entrar'}
+        </button>
+        <button type="button" id="go-register-from-login" class="w-full rounded-xl border border-zinc-200 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">¿No tienes cuenta? Regístrate</button>
+      </form>
+    </section>
   `;
 }
 
@@ -239,7 +284,7 @@ function registerPanelView() {
         <button id="close-register-panel" class="rounded-lg border border-zinc-200 px-2 py-1 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Cerrar</button>
       </div>
       <form id="register-form" class="mt-3 space-y-2">
-        <input required name="register_email" type="email" placeholder="E-mail" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
+        <input required name="register_email" type="email" placeholder="Correo electrónico" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
         <input required name="register_password" type="password" placeholder="Contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
         <input required name="confirm_password" type="password" placeholder="Repite la contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
         ${state.registerError ? `<p class="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-950/20 dark:text-red-300">${state.registerError}</p>` : ''}
@@ -525,6 +570,9 @@ async function handleAuth(event) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   state.authLoading = false;
+  if (!error) {
+    state.loginPanelOpen = false;
+  }
   if (error) {
     state.authError = 'E-mail o contraseña incorrecta.';
     render();
@@ -902,9 +950,50 @@ function bindEvents() {
   const registerForm = document.getElementById('register-form');
   if (registerForm) registerForm.addEventListener('submit', handleRegister);
 
+  const openLoginPanelBtn = document.getElementById('open-login-panel');
+  if (openLoginPanelBtn) {
+    openLoginPanelBtn.addEventListener('click', () => {
+      state.loginPanelOpen = true;
+      state.registerPanelOpen = false;
+      state.authError = '';
+      render();
+    });
+  }
+
   const openRegisterPanelBtn = document.getElementById('open-register-panel');
   if (openRegisterPanelBtn) {
     openRegisterPanelBtn.addEventListener('click', () => {
+      state.registerPanelOpen = true;
+      state.loginPanelOpen = false;
+      state.authError = '';
+      state.registerError = '';
+      render();
+    });
+  }
+
+
+  const closeLoginPanelBtn = document.getElementById('close-login-panel');
+  if (closeLoginPanelBtn) {
+    closeLoginPanelBtn.addEventListener('click', () => {
+      state.loginPanelOpen = false;
+      state.authError = '';
+      render();
+    });
+  }
+
+  const loginOverlay = document.getElementById('login-overlay');
+  if (loginOverlay) {
+    loginOverlay.addEventListener('click', () => {
+      state.loginPanelOpen = false;
+      state.authError = '';
+      render();
+    });
+  }
+
+  const goRegisterFromLogin = document.getElementById('go-register-from-login');
+  if (goRegisterFromLogin) {
+    goRegisterFromLogin.addEventListener('click', () => {
+      state.loginPanelOpen = false;
       state.registerPanelOpen = true;
       state.authError = '';
       state.registerError = '';
