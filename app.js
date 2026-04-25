@@ -2,8 +2,8 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 const SUPABASE_URL = 'https://pztdjbeyyuckhygobdla.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_9DWuwVmEnBqYlWdWmRqV5w_4_MPO1HD';
-const GH_PAGES_APP_URL = 'https://ggmann-37.github.io/FocusFLow/';
-const APP_BASE_PATH = '/FocusFLow/';
+const GH_PAGES_APP_URL = 'https://ggmann-37.github.io/FocusFlow/';
+const APP_BASE_PATH = '/FocusFlow/';
 
 function hasSupabaseAuthParams() {
   const raw = `${window.location.hash || ''}${window.location.search || ''}`;
