@@ -8,8 +8,6 @@ create table if not exists public.tasks (
   fecha date not null,
   nombre text not null,
   minutos integer not null check (minutos > 0),
-  entregada boolean not null default false,
-  entregada_at timestamptz,
   tipo text not null check (tipo in ('task', 'exam')) default 'task',
   created_at timestamptz not null default now()
 );
@@ -28,7 +26,6 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null,
   username text not null,
-  avatar_url text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -76,26 +73,3 @@ drop trigger if exists trg_profiles_updated_at on public.profiles;
 create trigger trg_profiles_updated_at
 before update on public.profiles
 for each row execute procedure public.update_updated_at_column();
-
-create or replace function public.delete_my_account()
-returns void
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  uid uuid := auth.uid();
-begin
-  if uid is null then
-    raise exception 'Not authenticated';
-  end if;
-
-  delete from public.tasks where user_id = uid;
-  delete from public.exams where user_id = uid;
-  delete from public.profiles where id = uid;
-  delete from auth.users where id = uid;
-end;
-$$;
-
-revoke all on function public.delete_my_account() from public;
-grant execute on function public.delete_my_account() to authenticated;
