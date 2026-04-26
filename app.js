@@ -56,6 +56,10 @@ const state = {
   createMode: false,
   notificationPermission: typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
   notificationPromptDismissed: sessionStorage.getItem('focusflow-notification-prompt-dismissed') === '1',
+  accountMenuOpen: false,
+  profilePanelOpen: false,
+  onboardingTourOpen: false,
+  onboardingStep: 0,
   timer: {
     taskId: null,
     remainingSeconds: 0,
@@ -194,8 +198,16 @@ async function fetchTasks() {
 
 async function fetchProfile() {
   if (!state.session?.user?.id) return;
-  const { data } = await supabase.from('profiles').select('username').eq('id', state.session.user.id).maybeSingle();
+  const { data } = await supabase.from('profiles').select('username, email, avatar_url').eq('id', state.session.user.id).maybeSingle();
   state.profile = data || null;
+}
+
+function maybeOpenOnboardingTour() {
+  if (!state.session?.user?.id) return;
+  const key = `focusflow-tour-seen-${state.session.user.id}`;
+  if (localStorage.getItem(key) === '1') return;
+  state.onboardingTourOpen = true;
+  state.onboardingStep = 0;
 }
 
 async function initSession() {
@@ -209,6 +221,7 @@ async function initSession() {
     await Promise.all([fetchTasks(), fetchProfile()]);
     openTodayTasksPanel();
     updateNotificationPermissionState();
+    maybeOpenOnboardingTour();
   }
 
   supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -226,6 +239,9 @@ async function initSession() {
       state.tasks = [];
       state.profile = null;
       state.todayTasksModalOpen = false;
+      state.profilePanelOpen = false;
+      state.accountMenuOpen = false;
+      state.onboardingTourOpen = false;
       state.notificationPermission = typeof Notification !== 'undefined' ? Notification.permission : 'unsupported';
     }
     render();
@@ -241,7 +257,7 @@ function authView() {
       <div class="pointer-events-none absolute -right-24 top-16 h-72 w-72 rounded-full bg-violet-400/30 blur-3xl"></div>
 
       <section class="relative mx-auto max-w-6xl space-y-10">
-        <header class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/60 bg-white/80 p-3 shadow-soft backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/80">
+        <header class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/60 bg-white/80 p-3 shadow-soft backdrop-blur hero-pop dark:border-zinc-800 dark:bg-zinc-900/80">
           <div class="flex items-center gap-3">
             <img src="assets/logo-focusflow.svg" alt="Logo FocusFlow" class="h-11 w-11 rounded-2xl" />
             <h1 class="text-2xl font-bold text-blue-600 dark:text-blue-300">FocusFlow</h1>
@@ -262,15 +278,15 @@ function authView() {
         </section>
 
         <section class="grid gap-4 md:grid-cols-3">
-          <article class="rounded-3xl border border-blue-100 bg-blue-200/70 p-6 text-center shadow-sm dark:border-blue-900/40 dark:bg-blue-950/30">
+          <article class="rounded-3xl border border-blue-100 bg-blue-200/70 p-6 text-center shadow-sm feature-card dark:border-blue-900/40 dark:bg-blue-950/30">
             <h3 class="text-2xl font-bold text-blue-700 dark:text-blue-300">Intuitivo</h3>
             <p class="mt-2 text-sm text-zinc-700 dark:text-zinc-300">Diseño pensado para estudiantes: creas tareas, ves tu calendario y organizas cada día en pocos clics, sin menús confusos ni pasos innecesarios.</p>
           </article>
-          <article class="rounded-3xl border border-violet-100 bg-violet-200/70 p-6 text-center shadow-sm dark:border-violet-900/40 dark:bg-violet-950/30">
+          <article class="rounded-3xl border border-violet-100 bg-violet-200/70 p-6 text-center shadow-sm feature-card dark:border-violet-900/40 dark:bg-violet-950/30">
             <h3 class="text-2xl font-bold text-violet-700 dark:text-violet-300">Gratis</h3>
             <p class="mt-2 text-sm text-zinc-700 dark:text-zinc-300">Disfruta de planificación automática de exámenes, temporizador y seguimiento diario sin pagar cuotas ni encontrarte con funciones bloqueadas a mitad de uso.</p>
           </article>
-          <article class="rounded-3xl border border-indigo-100 bg-indigo-200/70 p-6 text-center shadow-sm dark:border-indigo-900/40 dark:bg-indigo-950/30">
+          <article class="rounded-3xl border border-indigo-100 bg-indigo-200/70 p-6 text-center shadow-sm feature-card dark:border-indigo-900/40 dark:bg-indigo-950/30">
             <h3 class="text-2xl font-bold text-indigo-700 dark:text-indigo-300">Seguro</h3>
             <p class="mt-2 text-sm text-zinc-700 dark:text-zinc-300">Tu información académica se guarda en un entorno protegido y estable, con una experiencia fiable para que puedas centrarte en estudiar con tranquilidad.</p>
           </article>
@@ -315,6 +331,7 @@ function registerPanelView() {
         <button id="close-register-panel" class="rounded-lg border border-zinc-200 px-2 py-1 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Cerrar</button>
       </div>
       <form id="register-form" class="mt-3 space-y-2">
+        <input required name="register_username" type="text" minlength="3" maxlength="24" placeholder="Nombre de usuario" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
         <input required name="register_email" type="email" placeholder="Correo electrónico" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
         <input required name="register_password" type="password" placeholder="Contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
         <input required name="confirm_password" type="password" placeholder="Repite la contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
@@ -355,24 +372,25 @@ function dayPanelView() {
                   const taskStatus = dateStatus(task.fecha);
                   const isPast = taskStatus === 'past';
                   const isFuture = taskStatus === 'future';
+                  const isDone = Boolean(task.entregada);
                   return `
               <article class="task-item rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
                 <div class="flex items-start justify-between gap-2">
                   <div>
                     <p class="font-medium">${task.nombre}</p>
                     <p class="text-sm text-zinc-500">${task.minutos} min · ${task.tipo === 'exam' ? 'Plan examen' : 'Tarea'}</p>
-                    ${isPast ? '<p class="mt-1 text-xs font-semibold text-rose-600 dark:text-rose-300">No entregada</p>' : ''}
+                    ${isDone ? '<p class="mt-1 text-xs font-semibold text-emerald-600 dark:text-emerald-300">Entregada</p>' : isPast ? '<p class="mt-1 text-xs font-semibold text-rose-600 dark:text-rose-300">No entregada</p>' : ''}
                     <p id="timer-${task.id}" class="timer-text mt-1 text-sm font-semibold text-blue-600 dark:text-blue-300">${isTimerTask ? formatSeconds(state.timer.remainingSeconds) : formatSeconds(Number(task.minutos) * 60)}</p>
                   </div>
                   <div class="flex gap-1">
-                    <button data-edit-task="${task.id}" ${isPast ? 'disabled' : ''} class="rounded-lg border border-zinc-200 px-2 py-1 text-xs hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800">Editar</button>
-                    <button data-delete-task="${task.id}" ${isPast ? 'disabled' : ''} class="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50">Eliminar</button>
+                    <button data-edit-task="${task.id}" ${(isPast || isDone) ? 'disabled' : ''} class="rounded-lg border border-zinc-200 px-2 py-1 text-xs hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800">Editar</button>
+                    <button data-delete-task="${task.id}" ${(isPast || isDone) ? 'disabled' : ''} class="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50">Eliminar</button>
                   </div>
                 </div>
                 <div class="mt-3 flex flex-wrap gap-2">
-                  <button data-start-timer="${task.id}" ${(isPast || isFuture) ? 'disabled' : ''} class="rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50">Iniciar</button>
-                  <button data-pause-timer="${task.id}" ${(isPast || isFuture) ? 'disabled' : ''} class="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800">Pausar</button>
-                  <button data-submit-task="${task.id}" ${(isPast || isFuture) ? 'disabled' : ''} class="rounded-lg border border-emerald-300 px-2.5 py-1.5 text-xs text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50">Entregar</button>
+                  <button data-start-timer="${task.id}" ${(isPast || isFuture || isDone) ? 'disabled' : ''} class="rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50">Iniciar</button>
+                  <button data-pause-timer="${task.id}" ${(isPast || isFuture || isDone) ? 'disabled' : ''} class="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800">Pausar</button>
+                  <button data-submit-task="${task.id}" ${(isPast || isFuture || isDone) ? 'disabled' : ''} class="rounded-lg border border-emerald-300 px-2.5 py-1.5 text-xs text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50">${isDone ? 'Entregada' : 'Entregar'}</button>
                 </div>
               </article>
             `;
@@ -454,16 +472,25 @@ function appView() {
       }
       <header class="rounded-3xl border border-zinc-200 bg-white p-4 shadow-soft dark:border-zinc-800 dark:bg-zinc-900 flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-3">
+          <div class="relative">
+            <button id="open-account-menu" class="flex items-center gap-2 rounded-xl border border-zinc-200 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
+              <span class="grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-blue-100 text-xs font-semibold text-blue-700">${state.profile?.avatar_url ? `<img src="${state.profile.avatar_url}" alt="Avatar" class="h-full w-full object-cover"/>` : (state.profile?.username || 'U').slice(0,1).toUpperCase()}</span>
+              Cuenta
+            </button>
+            ${state.accountMenuOpen ? `<div class="fade-in absolute left-0 top-14 z-50 w-64 rounded-xl border border-zinc-200 bg-white p-2 shadow-soft dark:border-zinc-700 dark:bg-zinc-900">
+              <button id="open-profile-panel" class="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800">Perfil y ajustes</button>
+              <button id="logout" class="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50">Cerrar sesión</button>
+            </div>` : ''}
+          </div>
           <img src="assets/logo-focusflow.svg" alt="Logo FocusFlow" class="h-11 w-11 rounded-2xl" />
           <div>
             <h1 class="text-2xl font-semibold">FocusFlow</h1>
             <p class="text-sm text-zinc-500">Calendario, tareas y estudio automático para exámenes${state.profile?.username ? ` · @${state.profile.username}` : ''}</p>
+            <p class="text-sm font-semibold text-blue-600 dark:text-blue-300">Hola ${state.profile?.username || 'estudiante'} 👋</p>
             <p class="text-sm text-blue-600 dark:text-blue-300">Hoy: ${todayLabel}</p>
           </div>
         </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <button id="logout" class="rounded-xl border border-zinc-200 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Logout</button>
-        </div>
+        <div></div>
       </header>
 
       <section class="grid gap-5 lg:grid-cols-[2fr_1fr]">
@@ -505,7 +532,7 @@ function appView() {
             <div class="mt-3 h-2 rounded-full bg-zinc-100 dark:bg-zinc-800">
               <div class="h-full rounded-full bg-emerald-500" style="width:${Math.min((dailyMinutes / 240) * 100, 100)}%"></div>
             </div>
-            <p class="mt-2 text-sm">${dailyMinutes} minutos planificados</p>
+            <p class="mt-2 text-sm">${tasksForDate(state.selectedDate).length} tareas para este día</p>
           </article>
 
           <article class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
@@ -561,8 +588,62 @@ function appView() {
           : ''
       }
 
+
+      ${state.profilePanelOpen ? profilePanelView() : ''}
+      ${state.onboardingTourOpen ? onboardingTourView() : ''}
+
       ${state.toast ? `<div class="fixed left-1/2 top-4 z-[60] -translate-x-1/2 rounded-xl bg-zinc-900 px-4 py-2 text-sm text-white shadow-soft dark:bg-zinc-100 dark:text-zinc-900">${state.toast}</div>` : ''}
     </main>
+  `;
+}
+
+
+function profilePanelView() {
+  return `
+    <div id="profile-overlay" class="fixed inset-0 z-[85] bg-black/40"></div>
+    <section class="modal-panel fixed inset-0 z-[90] m-auto h-fit w-[92%] rounded-2xl border border-zinc-200 bg-white p-5 shadow-soft dark:border-zinc-700 dark:bg-zinc-900">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-semibold">Perfil y cuenta</h3>
+        <button id="close-profile-panel" class="rounded-lg border border-zinc-200 px-2 py-1 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Cerrar</button>
+      </div>
+      <form id="profile-form" class="mt-3 space-y-2">
+        <input name="username" required minlength="3" maxlength="24" value="${state.profile?.username || ''}" placeholder="Nombre de usuario" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
+        <input name="avatar_url" value="${state.profile?.avatar_url || ''}" placeholder="URL de imagen de perfil" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
+        <button class="rounded-xl bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500">Guardar perfil</button>
+      </form>
+      <form id="email-form" class="mt-3 space-y-2">
+        <input name="new_email" type="email" placeholder="Nuevo correo electrónico" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
+        <button class="rounded-xl border border-zinc-200 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Cambiar correo</button>
+      </form>
+      <form id="password-form" class="mt-3 space-y-2">
+        <input name="new_password" type="password" minlength="6" placeholder="Nueva contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
+        <button class="rounded-xl border border-zinc-200 px-3 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Cambiar contraseña</button>
+      </form>
+      <button id="delete-account" class="mt-3 rounded-xl border border-red-300 px-3 py-2 text-sm text-red-600 hover:bg-red-50">Eliminar cuenta</button>
+    </section>
+  `;
+}
+
+function onboardingTourView() {
+  const steps = [
+    'Bienvenido a FocusFlow. Aquí organizas tareas, estudio y exámenes en un calendario sencillo.',
+    'Pulsa un día para ver sus tareas y usa el botón + para crear nuevas tareas o planes de examen.',
+    'Desde tu menú de cuenta puedes actualizar perfil, correo, contraseña y foto cuando quieras.',
+  ];
+  const isLast = state.onboardingStep >= steps.length - 1;
+  return `
+    <div id="tour-overlay" class="fixed inset-0 z-[90] bg-black/45"></div>
+    <section class="modal-panel fixed inset-0 z-[95] m-auto h-fit w-[92%] rounded-2xl border border-zinc-200 bg-white p-5 shadow-soft dark:border-zinc-700 dark:bg-zinc-900">
+      <h3 class="text-lg font-semibold">Tour rápido de FocusFlow</h3>
+      <p class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">${steps[state.onboardingStep]}</p>
+      <div class="mt-4 flex items-center justify-between">
+        <span class="text-xs text-zinc-500">Paso ${state.onboardingStep + 1} de ${steps.length}</span>
+        <div class="flex gap-2">
+          <button id="skip-tour" class="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Saltar</button>
+          <button id="next-tour" class="rounded-lg bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-500">${isLast ? 'Finalizar' : 'Siguiente'}</button>
+        </div>
+      </div>
+    </section>
   `;
 }
 
@@ -616,11 +697,17 @@ async function handleRegister(event) {
 
   const formData = new FormData(event.target);
   const email = String(formData.get('register_email')).trim();
-  const username = email.split('@')[0] || 'usuario';
+  const username = String(formData.get('register_username')).trim();
   const password = String(formData.get('register_password')).trim();
   const confirmPassword = String(formData.get('confirm_password')).trim();
 
   state.registerError = '';
+
+  if (!username || username.length < 3) {
+    state.registerError = 'El nombre de usuario debe tener al menos 3 caracteres.';
+    render();
+    return;
+  }
 
   if (password !== confirmPassword) {
     state.registerError = 'La contraseña no coincide.';
@@ -655,7 +742,7 @@ async function handleRegister(event) {
     render();
   } else {
     state.registerPanelOpen = false;
-    toast('Cuenta creada. Revisa tu correo si la confirmación está habilitada.');
+    toast('Te hemos enviado un correo de verificación. Revisa tu bandeja de entrada.');
     render();
   }
 }
@@ -670,6 +757,7 @@ async function upsertTask(event) {
     minutos: Number(formData.get('minutos')),
     fecha: String(formData.get('fecha')),
     tipo: 'task',
+    entregada: false,
   };
 
   if (!payload.nombre || payload.minutos <= 0 || !payload.fecha) {
@@ -774,6 +862,7 @@ async function createExamPlan(event) {
       nombre: `Estudio: ${nombre}`,
       minutos: minutos_diarios,
       tipo: 'exam',
+      entregada: false,
     });
     cursor.setDate(cursor.getDate() + 1);
   }
@@ -942,6 +1031,11 @@ async function submitTask(taskId) {
     return;
   }
 
+  if (task.entregada) {
+    toast('Esta tarea ya está entregada.');
+    return;
+  }
+
   const isCurrentTimerTask = state.timer.taskId && String(state.timer.taskId) === String(taskId);
   if (isCurrentTimerTask) {
     resetTimer();
@@ -949,7 +1043,7 @@ async function submitTask(taskId) {
 
   const { error } = await supabase
     .from('tasks')
-    .delete()
+    .update({ entregada: true, entregada_at: new Date().toISOString() })
     .eq('id', taskId)
     .eq('user_id', state.session.user.id);
 
@@ -960,7 +1054,7 @@ async function submitTask(taskId) {
 
   await fetchTasks();
   render();
-  toast(`Tarea entregada: ${task.nombre}`);
+  toast(`Tarea marcada como entregada: ${task.nombre}`);
 }
 
 function resetTimer() {
@@ -1051,9 +1145,127 @@ function bindEvents() {
     });
   }
 
+
+  const openAccountMenuBtn = document.getElementById('open-account-menu');
+  if (openAccountMenuBtn) {
+    openAccountMenuBtn.addEventListener('click', () => {
+      state.accountMenuOpen = !state.accountMenuOpen;
+      render();
+    });
+  }
+
+  const openProfilePanelBtn = document.getElementById('open-profile-panel');
+  if (openProfilePanelBtn) {
+    openProfilePanelBtn.addEventListener('click', () => {
+      state.accountMenuOpen = false;
+      state.profilePanelOpen = true;
+      render();
+    });
+  }
+
+  const closeProfilePanelBtn = document.getElementById('close-profile-panel');
+  if (closeProfilePanelBtn) {
+    closeProfilePanelBtn.addEventListener('click', () => {
+      state.profilePanelOpen = false;
+      render();
+    });
+  }
+
+  const profileOverlay = document.getElementById('profile-overlay');
+  if (profileOverlay) {
+    profileOverlay.addEventListener('click', () => {
+      state.profilePanelOpen = false;
+      render();
+    });
+  }
+
+  const profileForm = document.getElementById('profile-form');
+  if (profileForm) {
+    profileForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const fd = new FormData(event.target);
+      const username = String(fd.get('username')).trim();
+      const avatar_url = String(fd.get('avatar_url')).trim();
+      const { error } = await supabase.from('profiles').update({ username, avatar_url }).eq('id', state.session.user.id);
+      if (error) return toast(error.message);
+      await fetchProfile();
+      render();
+      toast('Perfil actualizado.');
+    });
+  }
+
+  const emailForm = document.getElementById('email-form');
+  if (emailForm) {
+    emailForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const fd = new FormData(event.target);
+      const newEmail = String(fd.get('new_email')).trim();
+      if (!newEmail) return toast('Introduce un correo válido.');
+      const { error } = await supabase.auth.updateUser({ email: newEmail });
+      if (error) return toast(error.message);
+      toast('Te enviamos un correo para confirmar el cambio de email.');
+    });
+  }
+
+  const passwordForm = document.getElementById('password-form');
+  if (passwordForm) {
+    passwordForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const fd = new FormData(event.target);
+      const newPassword = String(fd.get('new_password')).trim();
+      if (!newPassword || newPassword.length < 6) return toast('La nueva contraseña debe tener al menos 6 caracteres.');
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) return toast(error.message);
+      toast('Contraseña actualizada correctamente.');
+      event.target.reset();
+    });
+  }
+
+  const deleteAccountBtn = document.getElementById('delete-account');
+  if (deleteAccountBtn) {
+    deleteAccountBtn.addEventListener('click', async () => {
+      const confirmDelete = window.confirm('¿Seguro que quieres eliminar tu cuenta? Esta acción no se puede deshacer.');
+      if (!confirmDelete) return;
+      const { error } = await supabase.rpc('delete_my_account');
+      if (error) {
+        toast('No se pudo eliminar la cuenta automáticamente. Configura la función delete_my_account en Supabase.');
+        return;
+      }
+      toast('Cuenta eliminada correctamente.');
+      await supabase.auth.signOut();
+    });
+  }
+
+  const nextTourBtn = document.getElementById('next-tour');
+  if (nextTourBtn) {
+    nextTourBtn.addEventListener('click', () => {
+      const steps = 3;
+      if (state.onboardingStep >= steps - 1) {
+        const key = `focusflow-tour-seen-${state.session.user.id}`;
+        localStorage.setItem(key, '1');
+        state.onboardingTourOpen = false;
+      } else {
+        state.onboardingStep += 1;
+      }
+      render();
+    });
+  }
+
+  const skipTourBtn = document.getElementById('skip-tour');
+  if (skipTourBtn) {
+    skipTourBtn.addEventListener('click', () => {
+      const key = `focusflow-tour-seen-${state.session.user.id}`;
+      localStorage.setItem(key, '1');
+      state.onboardingTourOpen = false;
+      render();
+    });
+  }
+
   const logoutBtn = document.getElementById('logout');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
+      state.accountMenuOpen = false;
+      state.profilePanelOpen = false;
       await supabase.auth.signOut();
     });
   }
