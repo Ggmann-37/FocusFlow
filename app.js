@@ -65,6 +65,7 @@ const state = {
 };
 
 let timerInterval = null;
+let chatbotScriptLoaded = false;
 
 const app = document.getElementById('app');
 
@@ -575,6 +576,27 @@ function render() {
   app.innerHTML = state.session ? appView() : authView();
   bindEvents();
   setPanel(state.panelOpen);
+  syncChatbotWidget();
+}
+
+function syncChatbotWidget() {
+  const existing = document.getElementById('focusflow-jotform-chatbot');
+  if (!state.session) {
+    if (existing) existing.remove();
+    chatbotScriptLoaded = false;
+    return;
+  }
+
+  if (chatbotScriptLoaded || existing) return;
+
+  const script = document.createElement('script');
+  script.id = 'focusflow-jotform-chatbot';
+  script.src = 'https://cdn.jotfor.ms/agent/embedjs/019dca3c62f2742d8559da17d8efeee65442/embed.js';
+  script.async = true;
+  script.onload = () => {
+    chatbotScriptLoaded = true;
+  };
+  document.body.appendChild(script);
 }
 
 function setPanel(open) {
