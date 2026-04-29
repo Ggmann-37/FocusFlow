@@ -237,14 +237,14 @@ async function initSession() {
 
 function authView() {
   return `
-    <main class="relative min-h-screen overflow-hidden bg-zinc-100 px-4 py-6 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100 md:px-8">
+    <main class="relative min-h-screen overflow-hidden bg-zinc-100 px-3 py-4 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100 md:px-8">
       <div class="pointer-events-none absolute -left-20 top-0 h-64 w-64 rounded-full bg-blue-400/35 blur-3xl"></div>
       <div class="pointer-events-none absolute -right-24 top-16 h-72 w-72 rounded-full bg-violet-400/30 blur-3xl"></div>
 
-      <section class="relative mx-auto max-w-6xl space-y-10">
+      <section class="relative mx-auto max-w-5xl space-y-6">
         <header class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/60 bg-white/80 p-3 shadow-soft backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/80">
           <div class="flex items-center gap-3">
-            <img src="assets/logo-focusflow.svg" alt="Logo FocusFlow" class="h-11 w-11 rounded-2xl" />
+            <img src="assets/logo-focusflow.svg" alt="Logo FocusFlow" class="h-10 w-10 rounded-2xl" />
             <h1 class="text-2xl font-bold text-blue-600 dark:text-blue-300">FocusFlow</h1>
           </div>
           <div class="flex gap-2">
@@ -262,22 +262,22 @@ function authView() {
           <p class="mx-auto max-w-3xl text-sm text-zinc-600 dark:text-zinc-300 md:text-base">Organiza tu estudio diario, crea planes de examen automáticos y mantén el foco con temporizador y recordatorios.</p>
         </section>
 
-        <section class="grid gap-4 md:grid-cols-3">
-          <article class="rounded-3xl border border-blue-100 bg-blue-200/70 p-6 text-center shadow-sm dark:border-blue-900/40 dark:bg-blue-950/30">
+        <section class="grid gap-3 md:grid-cols-3">
+          <article class="rounded-3xl border border-blue-100 bg-blue-200/70 p-4 text-center shadow-sm dark:border-blue-900/40 dark:bg-blue-950/30">
             <h3 class="text-2xl font-bold text-blue-700 dark:text-blue-300">Intuitivo</h3>
             <p class="mt-2 text-sm text-zinc-700 dark:text-zinc-300">Diseño pensado para estudiantes: creas tareas, ves tu calendario y organizas cada día en pocos clics, sin menús confusos ni pasos innecesarios.</p>
           </article>
-          <article class="rounded-3xl border border-violet-100 bg-violet-200/70 p-6 text-center shadow-sm dark:border-violet-900/40 dark:bg-violet-950/30">
+          <article class="rounded-3xl border border-violet-100 bg-violet-200/70 p-4 text-center shadow-sm dark:border-violet-900/40 dark:bg-violet-950/30">
             <h3 class="text-2xl font-bold text-violet-700 dark:text-violet-300">Gratis</h3>
             <p class="mt-2 text-sm text-zinc-700 dark:text-zinc-300">Disfruta de planificación automática de exámenes, temporizador y seguimiento diario sin pagar cuotas ni encontrarte con funciones bloqueadas a mitad de uso.</p>
           </article>
-          <article class="rounded-3xl border border-indigo-100 bg-indigo-200/70 p-6 text-center shadow-sm dark:border-indigo-900/40 dark:bg-indigo-950/30">
+          <article class="rounded-3xl border border-indigo-100 bg-indigo-200/70 p-4 text-center shadow-sm dark:border-indigo-900/40 dark:bg-indigo-950/30">
             <h3 class="text-2xl font-bold text-indigo-700 dark:text-indigo-300">Seguro</h3>
             <p class="mt-2 text-sm text-zinc-700 dark:text-zinc-300">Tu información académica se guarda en un entorno protegido y estable, con una experiencia fiable para que puedas centrarte en estudiar con tranquilidad.</p>
           </article>
         </section>
 
-        <footer class="pb-3 text-center text-sm font-semibold text-zinc-500">FocusFlow 2026</footer>
+        <footer class="pb-1 text-center text-sm font-semibold text-zinc-500">FocusFlow 2026</footer>
       </section>
 
       ${state.loginPanelOpen ? loginPanelView() : ''}
@@ -439,7 +439,7 @@ function appView() {
   const showNotificationPrompt = state.notificationPermission === 'default' && !state.notificationPromptDismissed;
 
   return `
-    <main class="mx-auto max-w-7xl p-4 md:p-8 space-y-5">
+    <main class="mx-auto max-w-6xl p-3 md:p-5 space-y-3">
       ${
         showNotificationPrompt
           ? `<section class="pointer-events-none fixed left-1/2 top-3 z-[65] w-[95%] max-w-xl -translate-x-1/2 md:top-4">
@@ -455,9 +455,9 @@ function appView() {
       }
       <header class="rounded-3xl border border-zinc-200 bg-white p-4 shadow-soft dark:border-zinc-800 dark:bg-zinc-900 flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-3">
-          <img src="assets/logo-focusflow.svg" alt="Logo FocusFlow" class="h-11 w-11 rounded-2xl" />
+          <img src="assets/logo-focusflow.svg" alt="Logo FocusFlow" class="h-10 w-10 rounded-2xl" />
           <div>
-            <h1 class="text-2xl font-semibold">FocusFlow</h1>
+            <h1 class="text-xl font-semibold">FocusFlow</h1>
             <p class="text-sm text-zinc-500">Calendario, tareas y estudio automático para exámenes${state.profile?.username ? ` · @${state.profile.username}` : ''}</p>
             <p class="text-sm text-blue-600 dark:text-blue-300">Hoy: ${todayLabel}</p>
           </div>
@@ -467,8 +467,8 @@ function appView() {
         </div>
       </header>
 
-      <section class="grid gap-5 lg:grid-cols-[2fr_1fr]">
-        <article class="rounded-3xl border border-zinc-200 bg-white p-5 shadow-soft dark:border-zinc-800 dark:bg-zinc-900">
+      <section class="grid gap-3 lg:grid-cols-[2fr_1fr]">
+        <article class="rounded-3xl border border-zinc-200 bg-white p-4 shadow-soft dark:border-zinc-800 dark:bg-zinc-900">
           <div class="mb-4 flex items-center justify-between">
             <h2 class="text-xl font-semibold capitalize">${monthLabel(state.currentMonth)}</h2>
             <div class="flex gap-2">
@@ -487,7 +487,7 @@ function appView() {
                 const count = tasksForDate(cell.date).length;
                 const isSelected = cell.date === state.selectedDate;
                 return `
-                  <button data-date="${cell.date}" class="min-h-20 rounded-2xl border border-zinc-200 p-2 text-left transition hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800 ${
+                  <button data-date="${cell.date}" class="min-h-16 rounded-2xl border border-zinc-200 p-1.5 text-left transition hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800 ${
                     cell.inMonth ? '' : 'opacity-40'
                   } ${isSelected ? 'bg-blue-50 border-blue-500 dark:bg-blue-950/30' : ''}">
                     <p class="text-sm font-medium">${new Date(`${cell.date}T12:00:00`).getDate()}</p>
@@ -519,10 +519,10 @@ function appView() {
         </aside>
       </section>
 
-      <button id="fab" class="fixed bottom-6 right-6 rounded-full bg-blue-600 p-4 text-2xl leading-none text-white shadow-soft hover:scale-105 hover:bg-blue-500">+</button>
+      <button id="fab" class="fixed bottom-4 right-4 rounded-full bg-blue-600 p-3 text-xl leading-none text-white shadow-soft hover:scale-105 hover:bg-blue-500">+</button>
 
       <div id="overlay" class="overlay fixed inset-0 z-40 bg-black/30"></div>
-      <aside id="panel" class="side-panel fixed right-0 top-0 z-50 h-full w-full max-w-xl overflow-y-auto border-l border-zinc-200 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-950">
+      <aside id="panel" class="side-panel fixed right-0 top-0 z-50 h-full w-full max-w-lg overflow-y-auto border-l border-zinc-200 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-950">
         <div class="mb-3 flex items-center justify-between">
           <h2 class="text-lg font-semibold">Detalle del día</h2>
           <button id="close-panel" class="rounded-xl border border-zinc-200 px-3 py-1 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Cerrar</button>
@@ -534,7 +534,7 @@ function appView() {
         state.todayTasksModalOpen
           ? `
         <div id="today-tasks-overlay" class="fixed inset-0 z-[70] bg-black/40"></div>
-        <section class="fixed left-1/2 top-1/2 z-[80] w-[92%] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-zinc-200 bg-white p-5 shadow-soft dark:border-zinc-700 dark:bg-zinc-900">
+        <section class="fixed left-1/2 top-1/2 z-[80] w-[92%] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-zinc-200 bg-white p-4 shadow-soft dark:border-zinc-700 dark:bg-zinc-900">
           <div class="flex items-start justify-between gap-3">
             <div>
               <h3 class="text-lg font-semibold">Tus tareas de hoy (${toHumanDate(today)})</h3>
@@ -542,7 +542,7 @@ function appView() {
             </div>
             <button id="close-today-tasks-modal" class="rounded-lg border border-zinc-200 px-2 py-1 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Cerrar</button>
           </div>
-          <div class="mt-3 max-h-60 space-y-2 overflow-y-auto">
+          <div class="mt-2 max-h-52 space-y-2 overflow-y-auto">
             ${
               todayTasks.length
                 ? todayTasks
