@@ -35,21 +35,18 @@ serve(async (request) => {
   }
 
   if (request.method !== 'POST') {
-    return jsonResponse({ success: false, message: 'Method not allowed' }, 405);
+    return jsonResponse({ success: false, message: 'Method not allowed' });
   }
 
   try {
     const secret = Deno.env.get('reCAPTCHA_secret');
     if (!secret) {
-      return jsonResponse(
-        { success: false, message: 'No existe el secret reCAPTCHA_secret en Edge Functions.' },
-        500,
-      );
+      return jsonResponse({ success: false, message: 'No existe el secret reCAPTCHA_secret en Edge Functions.' });
     }
 
     const { token, expectedHostname }: VerifyBody = await request.json();
     if (!token) {
-      return jsonResponse({ success: false, message: 'Falta el token de reCAPTCHA.' }, 400);
+      return jsonResponse({ success: false, message: 'Falta el token de reCAPTCHA.' });
     }
 
     const forwardedFor = request.headers.get('x-forwarded-for') || '';
@@ -75,7 +72,6 @@ serve(async (request) => {
           message: 'reCAPTCHA inválido o expirado. Vuelve a intentarlo.',
           errorCodes: verifyData['error-codes'] || [],
         },
-        400,
       );
     }
 
@@ -86,7 +82,6 @@ serve(async (request) => {
           message: 'Hostname de reCAPTCHA no coincide.',
           hostname: verifyData.hostname,
         },
-        400,
       );
     }
 
@@ -101,7 +96,6 @@ serve(async (request) => {
         success: false,
         message: error instanceof Error ? error.message : 'Error inesperado validando reCAPTCHA.',
       },
-      500,
     );
   }
 });
