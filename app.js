@@ -77,16 +77,34 @@ async function verifyRecaptchaOrFail(action) {
   const widgetId = await ensureRecaptchaWidget();
   const token = await window.grecaptcha.execute(widgetId);
 
-  const { data, error } = await supabase.functions.invoke('verify-recaptcha', {
-    body: {
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/verify-recaptcha`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify({
       token,
       action,
       expectedHostname: window.location.hostname,
-    },
+    }),
   });
 
-  if (error || !data?.success) {
-    throw new Error(data?.message || error?.message || 'No se pudo validar reCAPTCHA.');
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok) {
+    const message = payload?.message || 'No se pudo contactar con la validación reCAPTCHA.';
+    throw new Error(message);
+  }
+
+  if (!payload?.success) {
+    throw new Error(payload?.message || 'No se pudo validar reCAPTCHA.');
   }
 }
 
