@@ -262,6 +262,9 @@ async function fetchProfile() {
 }
 
 async function initSession() {
+  loadRecaptchaScript();
+  ensureRecaptchaWidget();
+
   const { data, error } = await supabase.auth.getSession();
   if (error) toast(error.message);
   state.session = data.session;
