@@ -78,7 +78,11 @@ async function verifyRecaptchaOrFail(action) {
   const token = await window.grecaptcha.execute(widgetId);
 
   const { data, error } = await supabase.functions.invoke('verify-recaptcha', {
-    body: { token, action },
+    body: {
+      token,
+      action,
+      expectedHostname: window.location.hostname,
+    },
   });
 
   if (error || !data?.success) {
