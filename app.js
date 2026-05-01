@@ -86,8 +86,10 @@ async function verifyRecaptchaOrFail(action) {
   });
 
   if (error) {
-    console.warn('verify-recaptcha no disponible temporalmente:', error.message);
-    return;
+    throw new Error(
+      `Error de verificación reCAPTCHA: ${error.message}. ` +
+        'Despliega verify-recaptcha con verify_jwt=false y revisa reCAPTCHA_secret.',
+    );
   }
 
   if (!data?.success) {
