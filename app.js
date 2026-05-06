@@ -81,9 +81,10 @@ async function verifyRecaptchaOrFail(action) {
     body: {
       token,
       action,
-      expectedHostname: window.location.hostname,
     },
   });
+
+  window.grecaptcha.reset(widgetId);
 
   if (error) {
     throw new Error(
