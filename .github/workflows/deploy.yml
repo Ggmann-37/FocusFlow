@@ -1,11 +1,11 @@
-name: Deploy Supabase (Functions + SQL)
+name: Deploy Supabase (schema.sql + functions)
 
 on:
   push:
     branches: [ "main" ]
     paths:
-      - "supabase/functions/**"
       - "supabase/schema.sql"
+      - "supabase/functions/**"
       - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
@@ -26,20 +26,18 @@ jobs:
         with:
           version: latest
 
-      - name: Link project
+      - name: Link Supabase project
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
 
-      # Aplica cambios SQL (schema.sql)
-      - name: Apply DB schema
-        run: |
-          supabase db push --password "$SUPABASE_DB_PASSWORD"
+      # Aplica schema.sql tal cual (sin carpeta migrations)
+      - name: Apply SQL schema
+        run: supabase db push --password "$SUPABASE_DB_PASSWORD"
 
-      # Deploy de todas las Edge Functions del repo
+      # Deploy de todas las Edge Functions
       - name: Deploy Edge Functions
-        run: |
-          supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"
+        run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"
 
-      # (Opcional) Set secret de reCAPTCHA en la function/runtime
+      # Secret de reCAPTCHA (opcional)
       - name: Set reCAPTCHA secret (optional)
         if: ${{ secrets.RECAPTCHA_SECRET != '' }}
         run: |
