@@ -1,0 +1,46 @@
+name: Deploy Supabase (Functions + SQL)
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "supabase/functions/**"
+      - "supabase/schema.sql"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+
+      # Aplica cambios SQL (schema.sql)
+      - name: Apply DB schema
+        run: |
+          supabase db push --password "$SUPABASE_DB_PASSWORD"
+
+      # Deploy de todas las Edge Functions del repo
+      - name: Deploy Edge Functions
+        run: |
+          supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"
+
+      # (Opcional) Set secret de reCAPTCHA en la function/runtime
+      - name: Set reCAPTCHA secret (optional)
+        if: ${{ secrets.RECAPTCHA_SECRET != '' }}
+        run: |
+          supabase secrets set reCAPTCHA_secret="${{ secrets.RECAPTCHA_SECRET }}" --project-ref "$SUPABASE_PROJECT_REF"
