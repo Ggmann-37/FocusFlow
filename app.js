@@ -593,14 +593,14 @@ function appView() {
           </article>
 
           <div class="flex items-center gap-2">
-            <button id="fab" class="rounded-xl bg-blue-600 px-3 py-2 text-lg leading-none text-white shadow-soft hover:bg-blue-500" aria-label="Añadir tarea">+</button>
+            <button id="fab" class="rounded-xl border border-blue-300 bg-blue-600 px-3 py-2 text-xl font-bold leading-none text-white shadow-soft hover:bg-blue-500 dark:border-blue-500" aria-label="Añadir tarea">+</button>
             <button id="open-panel" class="flex-1 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300">Ver tareas del día</button>
           </div>
         </aside>
       </section>
 
       <div id="overlay" class="overlay fixed inset-0 z-40 bg-black/30"></div>
-      <aside id="panel" class="side-panel fixed right-0 top-0 z-50 h-full w-full max-w-lg overflow-y-auto border-l border-zinc-200 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-950 ${state.createMode ? 'md:right-4 md:top-24 md:h-auto md:max-h-[78vh] md:rounded-2xl md:border md:shadow-2xl' : ''}">
+      <aside id="panel" class="side-panel fixed right-0 top-0 z-50 h-full w-full max-w-lg overflow-y-auto border-l border-zinc-200 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-950 ${state.createMode ? 'inset-x-3 top-20 h-auto max-h-[78vh] rounded-2xl border shadow-2xl md:inset-x-auto md:right-4 md:w-full' : ''}">
         <div class="mb-3 flex items-center justify-between">
           <h2 class="text-lg font-semibold">Detalle del día</h2>
           <button id="close-panel" class="rounded-xl border border-zinc-200 px-3 py-1 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Cerrar</button>
