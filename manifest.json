@@ -1,0 +1,30 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "fullscreen",
+  "name": "FocusFlow",
+  "orientation": "natural",
+  "scope": "/",
+  "short_name": "FocusFlow",
+  "start_url": "ggmann-37.github.io/FocusFlow/",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "https://ggmann-37.github.io/FocusFlow/assets/logo-focusflow.svg",
+      "type": "image/svg+xml",
+      "isSquare": false,
+      "isPng": false,
+      "isWebp": false,
+      "isJpg": false,
+      "width": 0,
+      "is512x512": false,
+      "is256x256": false,
+      "is192x192": false
+    }
+  ],
+  "lang": "es",
+  "categories": [
+    "productivity",
+    "utilities"
+  ]
+}
