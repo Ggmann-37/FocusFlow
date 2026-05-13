@@ -678,15 +678,6 @@ async function handleAuth(event) {
   state.authLoading = true;
   render();
 
-  try {
-    await verifyRecaptchaOrFail('login');
-  } catch (error) {
-    state.authLoading = false;
-    state.authError = error.message || 'Verificación reCAPTCHA fallida.';
-    render();
-    return;
-  }
-
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   state.authLoading = false;
@@ -719,15 +710,6 @@ async function handleRegister(event) {
 
   state.registerLoading = true;
   render();
-
-  try {
-    await verifyRecaptchaOrFail('register');
-  } catch (error) {
-    state.registerLoading = false;
-    state.registerError = error.message || 'Verificación reCAPTCHA fallida.';
-    render();
-    return;
-  }
 
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -776,6 +758,13 @@ async function upsertTask(event) {
   }
   if (payload.fecha < todayISO()) {
     toast('No puedes crear tareas en días anteriores a hoy.');
+    return;
+  }
+
+  try {
+    await verifyRecaptchaOrFail('task_upsert');
+  } catch (error) {
+    toast(error.message || 'Verificación reCAPTCHA fallida.');
     return;
   }
 
@@ -849,6 +838,13 @@ async function createExamPlan(event) {
 
   if (fecha_inicio > fecha_examen) {
     toast('La fecha de inicio no puede ser posterior al examen.');
+    return;
+  }
+
+  try {
+    await verifyRecaptchaOrFail('exam_plan_create');
+  } catch (error) {
+    toast(error.message || 'Verificación reCAPTCHA fallida.');
     return;
   }
 
