@@ -678,6 +678,15 @@ async function handleAuth(event) {
   state.authLoading = true;
   render();
 
+  try {
+    await verifyRecaptchaOrFail('login');
+  } catch (error) {
+    state.authLoading = false;
+    state.authError = error.message || 'Verificación reCAPTCHA fallida.';
+    render();
+    return;
+  }
+
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   state.authLoading = false;
@@ -710,6 +719,15 @@ async function handleRegister(event) {
 
   state.registerLoading = true;
   render();
+
+  try {
+    await verifyRecaptchaOrFail('register');
+  } catch (error) {
+    state.registerLoading = false;
+    state.registerError = error.message || 'Verificación reCAPTCHA fallida.';
+    render();
+    return;
+  }
 
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -761,12 +779,6 @@ async function upsertTask(event) {
     return;
   }
 
-  try {
-    await verifyRecaptchaOrFail('task_upsert');
-  } catch (error) {
-    toast(error.message || 'Verificación reCAPTCHA fallida.');
-    return;
-  }
 
   if (state.editTaskId) {
     const current = state.tasks.find((item) => String(item.id) === String(state.editTaskId));
@@ -841,12 +853,6 @@ async function createExamPlan(event) {
     return;
   }
 
-  try {
-    await verifyRecaptchaOrFail('exam_plan_create');
-  } catch (error) {
-    toast(error.message || 'Verificación reCAPTCHA fallida.');
-    return;
-  }
 
   const { error: examError } = await supabase.from('exams').insert({
     user_id: state.session.user.id,
