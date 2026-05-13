@@ -4,7 +4,7 @@ const SUPABASE_URL = 'https://pztdjbeyyuckhygobdla.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_9DWuwVmEnBqYlWdWmRqV5w_4_MPO1HD';
 const GH_PAGES_APP_URL = 'https://ggmann-37.github.io/FocusFlow/';
 const APP_BASE_PATH = '/FocusFlow/';
-const RECAPTCHA_SITE_KEY = '6LdB0NAsAAAAAP2xiS3YsTEHZrcNc0yCrRByfBtp';
+const RECAPTCHA_SITE_KEY = '6Lea2uIsAAAAADpiTdU_TdkCv_06gUKgTNwveRRk';
 
 function hasSupabaseAuthParams() {
   const raw = `${window.location.hash || ''}${window.location.search || ''}`;
@@ -31,7 +31,7 @@ function loadRecaptchaScript() {
   if (recaptchaScriptLoaded || document.getElementById('recaptcha-api-script')) return;
   const script = document.createElement('script');
   script.id = 'recaptcha-api-script';
-  script.src = 'https://www.google.com/recaptcha/api.js?render=explicit';
+  script.src = `https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`;
   script.async = true;
   script.defer = true;
   script.onload = () => {
@@ -40,32 +40,15 @@ function loadRecaptchaScript() {
   document.head.appendChild(script);
 }
 
-function ensureRecaptchaWidget() {
+function ensureRecaptchaReady() {
   return new Promise((resolve) => {
     const waitForRecaptcha = () => {
-      if (!window.grecaptcha || typeof window.grecaptcha.render !== 'function') {
+      if (!window.grecaptcha || typeof window.grecaptcha.ready !== 'function') {
         setTimeout(waitForRecaptcha, 120);
         return;
       }
 
-      let holder = document.getElementById('recaptcha-holder');
-      if (!holder) {
-        holder = document.createElement('div');
-        holder.id = 'recaptcha-holder';
-        holder.style.position = 'fixed';
-        holder.style.left = '-9999px';
-        holder.style.top = '0';
-        document.body.appendChild(holder);
-      }
-
-      if (recaptchaWidgetId === null) {
-        recaptchaWidgetId = window.grecaptcha.render(holder, {
-          sitekey: RECAPTCHA_SITE_KEY,
-          size: 'invisible',
-        });
-      }
-
-      resolve(recaptchaWidgetId);
+      window.grecaptcha.ready(() => resolve(window.grecaptcha));
     };
 
     waitForRecaptcha();
@@ -74,8 +57,8 @@ function ensureRecaptchaWidget() {
 
 async function verifyRecaptchaOrFail(action) {
   loadRecaptchaScript();
-  const widgetId = await ensureRecaptchaWidget();
-  const token = await window.grecaptcha.execute(widgetId);
+  const grecaptcha = await ensureRecaptchaReady();
+  const token = await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action });
 
   const { data, error } = await supabase.functions.invoke('verify-recaptcha', {
     body: {
@@ -84,7 +67,6 @@ async function verifyRecaptchaOrFail(action) {
     },
   });
 
-  window.grecaptcha.reset(widgetId);
 
   if (error) {
     throw new Error(
@@ -139,7 +121,6 @@ const state = {
 let timerInterval = null;
 let chatbotScriptLoaded = false;
 let recaptchaScriptLoaded = false;
-let recaptchaWidgetId = null;
 
 const app = document.getElementById('app');
 

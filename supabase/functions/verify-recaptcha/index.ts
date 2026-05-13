@@ -6,6 +6,8 @@ type VerifyBody = {
 
 type GoogleVerifyResponse = {
   success: boolean;
+  score?: number;
+  action?: string;
   challenge_ts?: string;
   hostname?: string;
   "error-codes"?: string[];
@@ -72,6 +74,7 @@ Deno.serve(async (request) => {
     }
 
     const token = requestBody?.token;
+    const expectedAction = requestBody?.action;
     const expectedHostname = requestBody?.expectedHostname;
 
     if (!token) {
@@ -123,9 +126,32 @@ Deno.serve(async (request) => {
       return errorResponse("Hostname de reCAPTCHA no coincide.", 400);
     }
 
+
+    if (expectedAction && verifyData.action && verifyData.action !== expectedAction) {
+      return errorResponse("Action de reCAPTCHA no coincide.", 400);
+    }
+
+    const minScoreRaw = Deno.env.get("RECAPTCHA_MIN_SCORE") ?? "0.5";
+    const minScore = Number(minScoreRaw);
+    const score = typeof verifyData.score === "number" ? verifyData.score : null;
+
+    if (!Number.isNaN(minScore) && score !== null && score < minScore) {
+      return jsonResponse(
+        {
+          success: false,
+          message: "Score de reCAPTCHA insuficiente.",
+          score,
+          minScore,
+          hostname: verifyData.hostname || null,
+        },
+        400,
+      );
+    }
     return jsonResponse({
       success: true,
       challengeTs: verifyData.challenge_ts || null,
+      action: verifyData.action || null,
+      score: typeof verifyData.score === "number" ? verifyData.score : null,
       hostname: verifyData.hostname || null,
     });
   } catch (err: unknown) {
