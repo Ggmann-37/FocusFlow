@@ -17,6 +17,11 @@ body {
   font-size: 15px;
 }
 
+.grecaptcha-badge {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
 .auth-card {
   animation: popIn 260ms ease;
 }

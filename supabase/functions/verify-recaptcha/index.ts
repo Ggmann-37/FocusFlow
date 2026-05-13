@@ -13,6 +13,12 @@ type GoogleVerifyResponse = {
   "error-codes"?: string[];
 };
 
+type VerifyAttemptResult = {
+  response: Response;
+  payloadText: string;
+  endpoint: string;
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -33,6 +39,19 @@ function jsonResponse(payload: Record<string, unknown>, status = 200) {
 
 function errorResponse(message: string, status: number) {
   return jsonResponse({ error: { message, status } }, status);
+}
+
+async function verifyWithEndpoint(
+  endpoint: string,
+  body: URLSearchParams,
+): Promise<VerifyAttemptResult> {
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+  });
+  const payloadText = await response.text();
+  return { response, payloadText, endpoint };
 }
 
 Deno.serve(async (request) => {
@@ -90,24 +109,31 @@ Deno.serve(async (request) => {
     body.set("response", token);
     if (remoteIp) body.set("remoteip", remoteIp);
 
-    const verifyResponse = await fetch("https://www.google.com/recaptcha/api/siteverify", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: body.toString(),
-    });
+    const primary = await verifyWithEndpoint("https://www.google.com/recaptcha/api/siteverify", body);
+    let verifyAttempt = primary;
 
-    console.info(`[verify-recaptcha] google status=${verifyResponse.status}`);
+    if (!primary.response.ok) {
+      console.info(
+        `[verify-recaptcha] google non-2xx status=${primary.response.status}; intentando fallback recaptcha.net`,
+      );
+      const fallback = await verifyWithEndpoint("https://www.recaptcha.net/recaptcha/api/siteverify", body);
+      verifyAttempt = fallback.response.ok ? fallback : primary;
+    }
 
-    const verifyText = await verifyResponse.text();
+    console.info(`[verify-recaptcha] endpoint=${verifyAttempt.endpoint} status=${verifyAttempt.response.status}`);
+
     let verifyData: GoogleVerifyResponse | null = null;
     try {
-      verifyData = JSON.parse(verifyText) as GoogleVerifyResponse;
+      verifyData = JSON.parse(verifyAttempt.payloadText) as GoogleVerifyResponse;
     } catch {
       return errorResponse("Respuesta no-JSON de Google reCAPTCHA.", 502);
     }
 
-    if (!verifyResponse.ok) {
-      return errorResponse("Google reCAPTCHA respondió con status no-2xx.", 502);
+    if (!verifyAttempt.response.ok) {
+      return errorResponse(
+        `Google reCAPTCHA respondió con status no-2xx (${verifyAttempt.response.status}).`,
+        502,
+      );
     }
 
     if (!verifyData?.success) {
