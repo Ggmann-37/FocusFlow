@@ -256,7 +256,6 @@ async function fetchProfile() {
 
 async function initSession() {
   loadRecaptchaScript();
-  ensureRecaptchaReady();
 
   const { data, error } = await supabase.auth.getSession();
   if (error) toast(error.message);

@@ -131,11 +131,11 @@ Deno.serve(async (request) => {
       return errorResponse("Action de reCAPTCHA no coincide.", 400);
     }
 
-    const minScoreRaw = Deno.env.get("RECAPTCHA_MIN_SCORE") ?? "0.5";
-    const minScore = Number(minScoreRaw);
+    const minScoreRaw = Deno.env.get("RECAPTCHA_MIN_SCORE");
+    const minScore = minScoreRaw ? Number(minScoreRaw) : null;
     const score = typeof verifyData.score === "number" ? verifyData.score : null;
 
-    if (!Number.isNaN(minScore) && score !== null && score < minScore) {
+    if (minScore !== null && !Number.isNaN(minScore) && score !== null && score < minScore) {
       return jsonResponse(
         {
           success: false,
