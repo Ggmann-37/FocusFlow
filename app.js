@@ -4,7 +4,6 @@ const SUPABASE_URL = 'https://pztdjbeyyuckhygobdla.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_9DWuwVmEnBqYlWdWmRqV5w_4_MPO1HD';
 const GH_PAGES_APP_URL = 'https://ggmann-37.github.io/FocusFlow/';
 const APP_BASE_PATH = '/FocusFlow/';
-const RECAPTCHA_SITE_KEY = '6Lea2uIsAAAAADpiTdU_TdkCv_06gUKgTNwveRRk';
 
 function hasSupabaseAuthParams() {
   const raw = `${window.location.hash || ''}${window.location.search || ''}`;
@@ -27,58 +26,6 @@ function cleanupAuthUrl() {
   window.history.replaceState({}, document.title, cleanUrl);
 }
 
-function loadRecaptchaScript() {
-  if (recaptchaScriptLoaded || document.getElementById('recaptcha-api-script')) return;
-  const script = document.createElement('script');
-  script.id = 'recaptcha-api-script';
-  script.src = `https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`;
-  script.async = true;
-  script.defer = true;
-  script.onload = () => {
-    recaptchaScriptLoaded = true;
-  };
-  document.head.appendChild(script);
-}
-
-function ensureRecaptchaReady() {
-  return new Promise((resolve) => {
-    const waitForRecaptcha = () => {
-      if (!window.grecaptcha || typeof window.grecaptcha.ready !== 'function') {
-        setTimeout(waitForRecaptcha, 120);
-        return;
-      }
-
-      window.grecaptcha.ready(() => resolve(window.grecaptcha));
-    };
-
-    waitForRecaptcha();
-  });
-}
-
-async function verifyRecaptchaOrFail(action) {
-  loadRecaptchaScript();
-  const grecaptcha = await ensureRecaptchaReady();
-  const token = await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action });
-
-  const { data, error } = await supabase.functions.invoke('verify-recaptcha', {
-    body: {
-      token,
-      action,
-    },
-  });
-
-
-  if (error) {
-    throw new Error(
-      `Error de verificación reCAPTCHA: ${error.message}. ` +
-        'Despliega verify-recaptcha con verify_jwt=false y revisa reCAPTCHA_secret.',
-    );
-  }
-
-  if (!data?.success) {
-    throw new Error(data?.message || 'No se pudo validar reCAPTCHA.');
-  }
-}
 
 const shouldDetectSessionInUrl = hasSupabaseAuthParams() && isAppBasePath();
 
@@ -120,7 +67,6 @@ const state = {
 
 let timerInterval = null;
 let chatbotScriptLoaded = false;
-let recaptchaScriptLoaded = false;
 
 const app = document.getElementById('app');
 
@@ -255,7 +201,6 @@ async function fetchProfile() {
 }
 
 async function initSession() {
-  loadRecaptchaScript();
 
   const { data, error } = await supabase.auth.getSession();
   if (error) toast(error.message);
@@ -678,14 +623,6 @@ async function handleAuth(event) {
   state.authLoading = true;
   render();
 
-  try {
-    await verifyRecaptchaOrFail('login');
-  } catch (error) {
-    state.authLoading = false;
-    state.authError = error.message || 'Verificación reCAPTCHA fallida.';
-    render();
-    return;
-  }
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
@@ -720,14 +657,6 @@ async function handleRegister(event) {
   state.registerLoading = true;
   render();
 
-  try {
-    await verifyRecaptchaOrFail('register');
-  } catch (error) {
-    state.registerLoading = false;
-    state.registerError = error.message || 'Verificación reCAPTCHA fallida.';
-    render();
-    return;
-  }
 
   const { data, error } = await supabase.auth.signUp({
     email,
