@@ -4,6 +4,7 @@ const SUPABASE_URL = 'https://pztdjbeyyuckhygobdla.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_9DWuwVmEnBqYlWdWmRqV5w_4_MPO1HD';
 const GH_PAGES_APP_URL = 'https://ggmann-37.github.io/FocusFlow/';
 const APP_BASE_PATH = '/FocusFlow/';
+const TURNSTILE_SITE_KEY = 'TU_SITE_KEY';
 
 function hasSupabaseAuthParams() {
   const raw = `${window.location.hash || ''}${window.location.search || ''}`;
@@ -24,6 +25,12 @@ function cleanupAuthUrl() {
   if (!hasSupabaseAuthParams()) return;
   const cleanUrl = `${window.location.pathname}${window.location.search || ''}`;
   window.history.replaceState({}, document.title, cleanUrl);
+}
+
+function getTurnstileToken(formElement) {
+  if (!formElement) return '';
+  const tokenInput = formElement.querySelector('input[name="cf-turnstile-response"]');
+  return String(tokenInput?.value || '').trim();
 }
 
 
@@ -299,6 +306,7 @@ function loginPanelView() {
       <form id="auth-form" class="mt-3 space-y-2">
         <input required name="email" type="email" placeholder="Correo electrónico" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
         <input required name="password" type="password" placeholder="Contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
+        <div class="cf-turnstile" data-sitekey="${TURNSTILE_SITE_KEY}"></div>
         ${state.authError ? `<p class="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-950/20 dark:text-red-300">${state.authError}</p>` : ''}
         <button data-mode="login" ${state.authLoading ? 'disabled' : ''} class="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-2 text-white hover:bg-blue-500 disabled:opacity-70">
           ${state.authLoading ? '<span class="spinner"></span> Iniciando...' : 'Entrar'}
@@ -321,6 +329,7 @@ function registerPanelView() {
         <input required name="register_email" type="email" placeholder="Correo electrónico" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
         <input required name="register_password" type="password" placeholder="Contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
         <input required name="confirm_password" type="password" placeholder="Repite la contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
+        <div class="cf-turnstile" data-sitekey="${TURNSTILE_SITE_KEY}"></div>
         ${state.registerError ? `<p class="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-950/20 dark:text-red-300">${state.registerError}</p>` : ''}
         <button data-mode="register" ${state.registerLoading ? 'disabled' : ''} class="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-2 text-white hover:bg-violet-500 disabled:opacity-70">
           ${state.registerLoading ? '<span class="spinner"></span> Registrando...' : 'Registrarse'}
@@ -616,6 +625,7 @@ async function handleAuth(event) {
   if (state.authLoading) return;
 
   const formData = new FormData(event.target);
+  const captchaToken = getTurnstileToken(event.target);
   const email = String(formData.get('email')).trim();
   const password = String(formData.get('password')).trim();
 
@@ -623,8 +633,18 @@ async function handleAuth(event) {
   state.authLoading = true;
   render();
 
+  if (!captchaToken) {
+    state.authLoading = false;
+    state.authError = 'Completa el captcha para continuar.';
+    render();
+    return;
+  }
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+    options: { captchaToken },
+  });
 
   state.authLoading = false;
   if (!error) {
@@ -641,6 +661,7 @@ async function handleRegister(event) {
   if (state.registerLoading) return;
 
   const formData = new FormData(event.target);
+  const captchaToken = getTurnstileToken(event.target);
   const email = String(formData.get('register_email')).trim();
   const username = email.split('@')[0] || 'usuario';
   const password = String(formData.get('register_password')).trim();
@@ -657,11 +678,18 @@ async function handleRegister(event) {
   state.registerLoading = true;
   render();
 
+  if (!captchaToken) {
+    state.registerLoading = false;
+    state.registerError = 'Completa el captcha para continuar.';
+    render();
+    return;
+  }
 
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
+      captchaToken,
       data: { username },
       emailRedirectTo: GH_PAGES_APP_URL,
     },
