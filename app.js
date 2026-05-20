@@ -424,7 +424,8 @@ function dayPanelView() {
               <h3 class="font-semibold">${editingTask ? 'Editar tarea' : 'Nueva tarea'}</h3>
               <input required name="nombre" value="${editingTask ? editingTask.nombre : ''}" placeholder="Nombre" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
               <input required min="1" name="minutos" type="number" value="${editingTask ? editingTask.minutos : 30}" placeholder="Minutos" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
-              <input required min="${todayISO()}" name="fecha" type="date" value="${editingTask ? editingTask.fecha : defaultCreateDate}" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
+              <input min="${todayISO()}" name="fecha" type="date" value="${editingTask ? editingTask.fecha : ''}" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
+              <p class="text-xs text-zinc-500">Fecha opcional. Si la dejas vacía, se usará el día seleccionado.</p>
               <div class="flex gap-2">
                 <button class="rounded-xl bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500">${editingTask ? 'Guardar cambios' : 'Crear tarea'}</button>
                 ${editingTask ? '<button type="button" id="cancel-edit" class="rounded-xl border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">Cancelar</button>' : ''}
@@ -558,7 +559,7 @@ function appView() {
       </section>
 
       <div id="overlay" class="overlay fixed inset-0 z-40 bg-black/30"></div>
-      <aside id="panel" class="side-panel fixed right-0 top-0 z-50 h-full w-full max-w-lg overflow-y-auto border-l border-zinc-200 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-950 ${state.createMode ? 'inset-x-3 top-20 h-auto max-h-[78vh] rounded-2xl border shadow-2xl md:inset-x-auto md:right-4 md:w-full' : ''}">
+      <aside id="panel" class="side-panel fixed right-0 top-0 z-50 h-full w-full overflow-y-auto border-l border-zinc-200 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-950">
         <div class="mb-3 flex items-center justify-between">
           <h2 class="text-lg font-semibold">Detalle del día</h2>
           <button id="close-panel" class="rounded-xl border border-zinc-200 px-3 py-1 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Cerrar</button>
@@ -748,11 +749,11 @@ async function upsertTask(event) {
     user_id: state.session.user.id,
     nombre: String(formData.get('nombre')).trim(),
     minutos: Number(formData.get('minutos')),
-    fecha: String(formData.get('fecha')),
+    fecha: String(formData.get('fecha')).trim() || state.selectedDate || todayISO(),
     tipo: 'task',
   };
 
-  if (!payload.nombre || payload.minutos <= 0 || !payload.fecha) {
+  if (!payload.nombre || payload.minutos <= 0) {
     toast('Completa todos los campos de tarea correctamente.');
     return;
   }
