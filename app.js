@@ -38,6 +38,7 @@ function initTurnstileWidgets() {
   document.querySelectorAll('.cf-turnstile').forEach((container) => {
     if (container.dataset.rendered === '1') return;
     const form = container.closest('form');
+    const mode = container.dataset.mode || '';
     const widgetId = window.turnstile.render(container, {
       sitekey: TURNSTILE_SITE_KEY,
       callback: (token) => {
@@ -50,6 +51,19 @@ function initTurnstileWidgets() {
           form.appendChild(hidden);
         }
         hidden.value = token || '';
+        if (mode === 'login') state.authCaptchaVerified = Boolean(token);
+        if (mode === 'register') state.registerCaptchaVerified = Boolean(token);
+        render();
+      },
+      'expired-callback': () => {
+        if (mode === 'login') state.authCaptchaVerified = false;
+        if (mode === 'register') state.registerCaptchaVerified = false;
+        render();
+      },
+      'error-callback': () => {
+        if (mode === 'login') state.authCaptchaVerified = false;
+        if (mode === 'register') state.registerCaptchaVerified = false;
+        render();
       },
     });
     container.dataset.rendered = '1';
@@ -79,10 +93,12 @@ const state = {
   toast: '',
   authError: '',
   authLoading: false,
+  authCaptchaVerified: false,
   loginPanelOpen: false,
   registerPanelOpen: false,
   registerLoading: false,
   registerError: '',
+  registerCaptchaVerified: false,
   examSummary: null,
   todayTasksModalOpen: false,
   createMode: false,
@@ -330,9 +346,9 @@ function loginPanelView() {
       <form id="auth-form" class="mt-3 space-y-2">
         <input required name="email" type="email" placeholder="Correo electrónico" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
         <input required name="password" type="password" placeholder="Contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
-        <div class="cf-turnstile" data-sitekey="${TURNSTILE_SITE_KEY}"></div>
+        <div class="cf-turnstile" data-mode="login" data-sitekey="${TURNSTILE_SITE_KEY}"></div>
         ${state.authError ? `<p class="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-950/20 dark:text-red-300">${state.authError}</p>` : ''}
-        <button data-mode="login" ${state.authLoading ? 'disabled' : ''} class="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-2 text-white hover:bg-blue-500 disabled:opacity-70">
+        <button data-mode="login" ${(state.authLoading || !state.authCaptchaVerified) ? 'disabled' : ''} class="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-2 text-white hover:bg-blue-500 disabled:opacity-70">
           ${state.authLoading ? '<span class="spinner"></span> Iniciando...' : 'Entrar'}
         </button>
         <button type="button" id="go-register-from-login" class="w-full rounded-xl border border-zinc-200 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">¿No tienes cuenta? Regístrate</button>
@@ -353,9 +369,9 @@ function registerPanelView() {
         <input required name="register_email" type="email" placeholder="Correo electrónico" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
         <input required name="register_password" type="password" placeholder="Contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
         <input required name="confirm_password" type="password" placeholder="Repite la contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
-        <div class="cf-turnstile" data-sitekey="${TURNSTILE_SITE_KEY}"></div>
+        <div class="cf-turnstile" data-mode="register" data-sitekey="${TURNSTILE_SITE_KEY}"></div>
         ${state.registerError ? `<p class="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-950/20 dark:text-red-300">${state.registerError}</p>` : ''}
-        <button data-mode="register" ${state.registerLoading ? 'disabled' : ''} class="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-2 text-white hover:bg-violet-500 disabled:opacity-70">
+        <button data-mode="register" ${(state.registerLoading || !state.registerCaptchaVerified) ? 'disabled' : ''} class="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-2 text-white hover:bg-violet-500 disabled:opacity-70">
           ${state.registerLoading ? '<span class="spinner"></span> Registrando...' : 'Registrarse'}
         </button>
       </form>
@@ -639,6 +655,10 @@ function syncChatbotWidget() {
 
 function setPanel(open) {
   state.panelOpen = open;
+  if (!open) {
+    state.createMode = false;
+    state.editTaskId = null;
+  }
   const panel = document.getElementById('panel');
   const overlay = document.getElementById('overlay');
   if (!panel || !overlay) return;
