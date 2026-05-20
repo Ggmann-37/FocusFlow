@@ -33,6 +33,30 @@ function getTurnstileToken(formElement) {
   return String(tokenInput?.value || '').trim();
 }
 
+function initTurnstileWidgets() {
+  if (!window.turnstile || typeof window.turnstile.render !== 'function') return;
+  document.querySelectorAll('.cf-turnstile').forEach((container) => {
+    if (container.dataset.rendered === '1') return;
+    const form = container.closest('form');
+    const widgetId = window.turnstile.render(container, {
+      sitekey: TURNSTILE_SITE_KEY,
+      callback: (token) => {
+        if (!form) return;
+        let hidden = form.querySelector('input[name="cf-turnstile-response"]');
+        if (!hidden) {
+          hidden = document.createElement('input');
+          hidden.type = 'hidden';
+          hidden.name = 'cf-turnstile-response';
+          form.appendChild(hidden);
+        }
+        hidden.value = token || '';
+      },
+    });
+    container.dataset.rendered = '1';
+    container.dataset.widgetId = String(widgetId);
+  });
+}
+
 
 const shouldDetectSessionInUrl = hasSupabaseAuthParams() && isAppBasePath();
 
@@ -587,6 +611,7 @@ function render() {
 
   app.innerHTML = state.session ? appView() : authView();
   bindEvents();
+  initTurnstileWidgets();
   setPanel(state.panelOpen);
   syncChatbotWidget();
 }
