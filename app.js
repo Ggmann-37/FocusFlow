@@ -562,7 +562,7 @@ function appView() {
       <aside id="panel" class="side-panel fixed right-0 top-0 z-50 h-full w-full max-w-lg overflow-y-auto border-l border-zinc-200 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-950">
         <div class="mb-3 flex items-center justify-between">
           <h2 class="text-lg font-semibold">Detalle del día</h2>
-          <button id="close-panel" class="rounded-xl border border-zinc-200 px-3 py-1 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Cerrar</button>
+          <button type="button" id="close-panel" class="rounded-xl border border-zinc-200 px-3 py-1 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Cerrar</button>
         </div>
         ${dayPanelView()}
       </aside>
@@ -642,6 +642,7 @@ function setPanel(open) {
   if (!open) {
     state.createMode = false;
     state.editTaskId = null;
+    state.todayTasksModalOpen = false;
   }
   const panel = document.getElementById('panel');
   const overlay = document.getElementById('overlay');
@@ -1180,10 +1181,16 @@ function bindEvents() {
   }
 
   const closePanel = document.getElementById('close-panel');
-  if (closePanel) closePanel.addEventListener('click', () => setPanel(false));
+  if (closePanel) closePanel.addEventListener('click', () => {
+    setPanel(false);
+    render();
+  });
 
   const overlay = document.getElementById('overlay');
-  if (overlay) overlay.addEventListener('click', () => setPanel(false));
+  if (overlay) overlay.addEventListener('click', () => {
+    setPanel(false);
+    render();
+  });
 
   const todayTasksOverlay = document.getElementById('today-tasks-overlay');
   if (todayTasksOverlay) {
