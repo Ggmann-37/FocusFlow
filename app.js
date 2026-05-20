@@ -4,7 +4,7 @@ const SUPABASE_URL = 'https://pztdjbeyyuckhygobdla.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_9DWuwVmEnBqYlWdWmRqV5w_4_MPO1HD';
 const GH_PAGES_APP_URL = 'https://ggmann-37.github.io/FocusFlow/';
 const APP_BASE_PATH = '/FocusFlow/';
-const TURNSTILE_SITE_KEY = 'TU_SITE_KEY';
+const TURNSTILE_SITE_KEY = '0x4AAAAAADRD9WtCixOGOgYq';
 
 function hasSupabaseAuthParams() {
   const raw = `${window.location.hash || ''}${window.location.search || ''}`;
