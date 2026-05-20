@@ -418,43 +418,9 @@ function dayPanelView() {
         }
       </div>
 
-      ${
-        state.createMode
-          ? `<form id="task-form" class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 space-y-2">
-              <h3 class="font-semibold">${editingTask ? 'Editar tarea' : 'Nueva tarea'}</h3>
-              <input required name="nombre" value="${editingTask ? editingTask.nombre : ''}" placeholder="Nombre" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
-              <input required min="1" name="minutos" type="number" value="${editingTask ? editingTask.minutos : 30}" placeholder="Minutos" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
-              <input min="${todayISO()}" name="fecha" type="date" value="${editingTask ? editingTask.fecha : ''}" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
-              <p class="text-xs text-zinc-500">Fecha opcional. Si la dejas vacía, se usará el día seleccionado.</p>
-              <div class="flex gap-2">
-                <button class="rounded-xl bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500">${editingTask ? 'Guardar cambios' : 'Crear tarea'}</button>
-                ${editingTask ? '<button type="button" id="cancel-edit" class="rounded-xl border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">Cancelar</button>' : ''}
-              </div>
-            </form>
-
-            <form id="exam-form" class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 space-y-2">
-              <h3 class="font-semibold">Planificar examen</h3>
-              <input required name="nombre" placeholder="Nombre examen" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
-              <div class="rounded-xl border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200">
-                Fecha del examen
-              </div>
-              <input required min="${todayISO()}" name="fecha_examen" type="date" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
-              <div class="rounded-xl border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-900 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-200">
-                Fecha de inicio
-              </div>
-              <input required min="${todayISO()}" name="fecha_inicio" type="date" value="${defaultCreateDate}" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
-              <input required min="1" name="minutos_diarios" type="number" value="60" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
-              <button class="rounded-xl bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-500">Generar plan automático</button>
-              ${
-                state.examSummary
-                  ? `<p class="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:border-amber-700/60 dark:bg-amber-950/20 dark:text-amber-300">Plan creado. Fecha de inicio: <strong>${toHumanDate(state.examSummary.fecha_inicio)}</strong> · Fecha del examen: <strong>${toHumanDate(state.examSummary.fecha_examen)}</strong></p>`
-                  : ''
-              }
-            </form>`
-          : `<div class="rounded-2xl border border-zinc-200 bg-zinc-100/80 p-3 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300">
-              ${selectedDateStatus === 'past' ? 'Este día ya pasó: solo puedes revisar tareas no entregadas.' : 'Pulsa el botón + para crear tareas o planificar exámenes.'}
-            </div>`
-      }
+      <div class="rounded-2xl border border-zinc-200 bg-zinc-100/80 p-3 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300">
+        ${selectedDateStatus === 'past' ? 'Este día ya pasó: solo puedes revisar tareas no entregadas.' : 'Pulsa el botón + para crear tareas o planificar exámenes.'}
+      </div>
     </div>
   `;
 }
@@ -598,6 +564,26 @@ function appView() {
       `
           : ''
       }
+      ${
+        state.createMode
+          ? `
+          <div id="create-overlay" class="fixed inset-0 z-[85] bg-black/40"></div>
+          <section class="fixed left-1/2 top-1/2 z-[90] w-[94%] max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-zinc-200 bg-white p-4 shadow-soft dark:border-zinc-700 dark:bg-zinc-900 animate-[monthSlide_220ms_ease]">
+            <div class="mb-3 flex items-center justify-between">
+              <h3 class="font-semibold">Añadir tarea o planificar examen</h3>
+              <button type="button" id="close-create-modal" class="rounded-xl border border-zinc-200 px-3 py-1 text-sm dark:border-zinc-700">Cerrar</button>
+            </div>
+            <form id="task-form" class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 space-y-2">
+              <h3 class="font-semibold">${state.editTaskId ? 'Editar tarea' : 'Nueva tarea'}</h3>
+              <input required name="nombre" placeholder="Nombre" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
+              <input required min="1" name="minutos" type="number" value="30" placeholder="Minutos" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
+              <input required min="${todayISO()}" name="fecha" type="date" value="${defaultCreateDate}" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
+              <p class="text-xs text-zinc-500">Esta fecha es de entrega. Se crearán tareas diarias desde el día seleccionado hasta la entrega.</p>
+              <button class="rounded-xl bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500">Crear tarea</button>
+            </form>
+          </section>`
+          : ''
+      }
 
       ${state.toast ? `<div class="fixed left-1/2 top-4 z-[60] -translate-x-1/2 rounded-xl bg-zinc-900 px-4 py-2 text-sm text-white shadow-soft dark:bg-zinc-100 dark:text-zinc-900">${state.toast}</div>` : ''}
     </main>
@@ -677,6 +663,23 @@ async function handleAuth(event) {
     options: { captchaToken },
   });
 
+  const createOverlay = document.getElementById('create-overlay');
+  if (createOverlay) {
+    createOverlay.addEventListener('click', () => {
+      state.createMode = false;
+      state.editTaskId = null;
+      render();
+    });
+  }
+  const closeCreateModal = document.getElementById('close-create-modal');
+  if (closeCreateModal) {
+    closeCreateModal.addEventListener('click', () => {
+      state.createMode = false;
+      state.editTaskId = null;
+      render();
+    });
+  }
+
   state.authLoading = false;
   if (!error) {
     state.loginPanelOpen = false;
@@ -750,20 +753,21 @@ async function upsertTask(event) {
   event.preventDefault();
   const formData = new FormData(event.target);
 
-  const payload = {
-    user_id: state.session.user.id,
-    nombre: String(formData.get('nombre')).trim(),
-    minutos: Number(formData.get('minutos')),
-    fecha: String(formData.get('fecha')).trim() || state.selectedDate || todayISO(),
-    tipo: 'task',
-  };
+  const nombre = String(formData.get('nombre')).trim();
+  const minutos = Number(formData.get('minutos'));
+  const fechaEntrega = String(formData.get('fecha')).trim() || state.selectedDate || todayISO();
+  const inicio = state.selectedDate || todayISO();
 
-  if (!payload.nombre || payload.minutos <= 0) {
+  if (!nombre || minutos <= 0 || !fechaEntrega) {
     toast('Completa todos los campos de tarea correctamente.');
     return;
   }
-  if (payload.fecha < todayISO()) {
+  if (fechaEntrega < todayISO()) {
     toast('No puedes crear tareas en días anteriores a hoy.');
+    return;
+  }
+  if (inicio > fechaEntrega) {
+    toast('La fecha de entrega no puede ser anterior al día seleccionado.');
     return;
   }
 
@@ -786,9 +790,23 @@ async function upsertTask(event) {
     state.editTaskId = null;
     toast('Tarea actualizada.');
   } else {
-    const { error } = await supabase.from('tasks').insert(payload);
+    const tasks = [];
+    let cursor = parseDate(inicio);
+    const end = parseDate(fechaEntrega);
+    const serieNombre = `${nombre} [entrega ${fechaEntrega}]`;
+    while (cursor <= end) {
+      tasks.push({
+        user_id: state.session.user.id,
+        nombre: serieNombre,
+        minutos,
+        fecha: formatDate(cursor),
+        tipo: 'task',
+      });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    const { error } = await supabase.from('tasks').insert(tasks);
     if (error) return toast(error.message);
-    toast('Tarea creada.');
+    toast(`Tarea creada (${tasks.length} días).`);
   }
 
   await fetchTasks();
@@ -802,11 +820,11 @@ async function deleteTask(taskId) {
     return;
   }
 
-  const { error } = await supabase
-    .from('tasks')
-    .delete()
-    .eq('id', taskId)
-    .eq('user_id', state.session.user.id);
+  const isSeries = task.nombre.includes('[entrega ');
+  const query = supabase.from('tasks').delete().eq('user_id', state.session.user.id);
+  const { error } = isSeries
+    ? await query.eq('nombre', task.nombre).eq('tipo', task.tipo)
+    : await query.eq('id', taskId);
 
   if (error) {
     toast(error.message);
@@ -1048,7 +1066,7 @@ async function submitTask(taskId) {
 
   await fetchTasks();
   render();
-  toast(`Tarea entregada: ${task.nombre}`);
+  toast(isSeries ? `Serie entregada y eliminada: ${task.nombre}` : `Tarea entregada: ${task.nombre}`);
 }
 
 function resetTimer() {
