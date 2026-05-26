@@ -629,11 +629,6 @@ function syncChatbotWidget() {
 
 function setPanel(open) {
   state.panelOpen = open;
-  if (!open) {
-    state.createMode = false;
-    state.editTaskId = null;
-    state.todayTasksModalOpen = false;
-  }
   const panel = document.getElementById('panel');
   const overlay = document.getElementById('overlay');
   if (!panel || !overlay) return;
@@ -643,8 +638,20 @@ function setPanel(open) {
 }
 
 function closeDayPanel() {
-  setPanel(false);
-  render();
+  const panel = document.getElementById('panel');
+  const overlay = document.getElementById('overlay');
+  if (panel && overlay) {
+    panel.classList.remove('open');
+    overlay.classList.remove('open');
+  }
+  document.body.style.overflow = '';
+  state.panelOpen = false;
+  state.createMode = false;
+  state.editTaskId = null;
+  state.todayTasksModalOpen = false;
+  window.setTimeout(() => {
+    render();
+  }, 260);
 }
 
 async function handleAuth(event) {
@@ -1153,6 +1160,8 @@ function bindEvents() {
   const logoutBtn = document.getElementById('logout');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
+      const shouldLogout = window.confirm('¿Seguro que quieres cerrar sesión?');
+      if (!shouldLogout) return;
       await supabase.auth.signOut();
     });
   }
