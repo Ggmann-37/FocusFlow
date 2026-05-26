@@ -98,6 +98,7 @@ const state = {
 
 let timerInterval = null;
 let chatbotScriptLoaded = false;
+let panelTouchStartX = null;
 
 const app = document.getElementById('app');
 
@@ -638,6 +639,12 @@ function setPanel(open) {
   if (!panel || !overlay) return;
   panel.classList.toggle('open', open);
   overlay.classList.toggle('open', open);
+  document.body.style.overflow = open ? 'hidden' : '';
+}
+
+function closeDayPanel() {
+  setPanel(false);
+  render();
 }
 
 async function handleAuth(event) {
@@ -1177,7 +1184,7 @@ function bindEvents() {
   const fab = document.getElementById('fab');
   if (fab) {
     fab.addEventListener('click', () => {
-      state.panelOpen = true;
+      setPanel(true);
       state.createMode = true;
       render();
       document.querySelector('#task-form input[name="nombre"]')?.focus();
@@ -1185,16 +1192,29 @@ function bindEvents() {
   }
 
   const closePanel = document.getElementById('close-panel');
-  if (closePanel) closePanel.addEventListener('click', () => {
-    setPanel(false);
-    render();
-  });
+  if (closePanel) closePanel.addEventListener('click', closeDayPanel);
 
   const overlay = document.getElementById('overlay');
-  if (overlay) overlay.addEventListener('click', () => {
-    setPanel(false);
-    render();
-  });
+  if (overlay) overlay.addEventListener('click', closeDayPanel);
+
+  const panel = document.getElementById('panel');
+  if (panel) {
+    panel.addEventListener('touchstart', (event) => {
+      panelTouchStartX = event.touches[0]?.clientX ?? null;
+    }, { passive: true });
+    panel.addEventListener('touchmove', (event) => {
+      if (panelTouchStartX === null) return;
+      const currentX = event.touches[0]?.clientX ?? panelTouchStartX;
+      const deltaX = currentX - panelTouchStartX;
+      if (deltaX > 80) {
+        panelTouchStartX = null;
+        closeDayPanel();
+      }
+    }, { passive: true });
+    panel.addEventListener('touchend', () => {
+      panelTouchStartX = null;
+    }, { passive: true });
+  }
 
   const todayTasksOverlay = document.getElementById('today-tasks-overlay');
   if (todayTasksOverlay) {
