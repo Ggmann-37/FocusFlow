@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192" role="img" aria-label="FocusFlow logo">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#5750e0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Fondo -->
+  <rect width="192" height="192" rx="40" fill="url(#bg)" />
+
+  <!-- Calendario -->
+  <rect x="40" y="60" width="112" height="88" rx="12" fill="#f4f4f5" />
+  <rect x="40" y="60" width="112" height="20" rx="10" fill="#cfd6ed" />
+
+  <!-- Puntos -->
+  <circle cx="64" cy="100" r="6" fill="#4f46e5" />
+  <circle cx="96" cy="100" r="6" fill="#4f46e5" />
+  <circle cx="128" cy="100" r="6" fill="#4f46e5" />
+  <circle cx="64" cy="124" r="6" fill="#4f46e5" />
+  <circle cx="96" cy="124" r="6" fill="#4f46e5" />
+
+  <!-- Línea curva -->
+  <path
+    d="M50 160C70 150 90 150 110 156C130 162 150 165 165 155"
+    fill="none"
+    stroke="#aeb7ff"
+    stroke-linecap="round"
+    stroke-width="4"
+  />
+</svg>
