@@ -4,18 +4,7 @@ const SUPABASE_URL = 'https://pztdjbeyyuckhygobdla.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_9DWuwVmEnBqYlWdWmRqV5w_4_MPO1HD';
 const GH_PAGES_APP_URL = 'https://ggmann-37.github.io/FocusFlow/';
 const APP_BASE_PATH = '/FocusFlow/';
-const TURNSTILE_SITE_KEY = '0x4AAAAAADRD9WtCixOGOgYq';
-
-
-function registerServiceWorker() {
-  if (!('serviceWorker' in navigator)) return;
-
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js', { scope: './' }).catch((error) => {
-      console.warn('No se pudo registrar el service worker de FocusFlow:', error);
-    });
-  });
-}
+const RECAPTCHA_SITE_KEY = '6LdB0NAsAAAAAP2xiS3YsTEHZrcNc0yCrRByfBtp';
 
 function hasSupabaseAuthParams() {
   const raw = `${window.location.hash || ''}${window.location.search || ''}`;
@@ -38,36 +27,76 @@ function cleanupAuthUrl() {
   window.history.replaceState({}, document.title, cleanUrl);
 }
 
-function getTurnstileToken(formElement) {
-  if (!formElement) return '';
-  const tokenInput = formElement.querySelector('input[name="cf-turnstile-response"]');
-  return String(tokenInput?.value || '').trim();
+function loadRecaptchaScript() {
+  if (recaptchaScriptLoaded || document.getElementById('recaptcha-api-script')) return;
+  const script = document.createElement('script');
+  script.id = 'recaptcha-api-script';
+  script.src = 'https://www.google.com/recaptcha/api.js?render=explicit';
+  script.async = true;
+  script.defer = true;
+  script.onload = () => {
+    recaptchaScriptLoaded = true;
+  };
+  document.head.appendChild(script);
 }
 
-function initTurnstileWidgets() {
-  if (!window.turnstile || typeof window.turnstile.render !== 'function') return;
-  document.querySelectorAll('.cf-turnstile').forEach((container) => {
-    if (container.dataset.rendered === '1') return;
-    const form = container.closest('form');
-    const widgetId = window.turnstile.render(container, {
-      sitekey: TURNSTILE_SITE_KEY,
-      callback: (token) => {
-        if (!form) return;
-        let hidden = form.querySelector('input[name="cf-turnstile-response"]');
-        if (!hidden) {
-          hidden = document.createElement('input');
-          hidden.type = 'hidden';
-          hidden.name = 'cf-turnstile-response';
-          form.appendChild(hidden);
-        }
-        hidden.value = token || '';
-      },
-    });
-    container.dataset.rendered = '1';
-    container.dataset.widgetId = String(widgetId);
+function ensureRecaptchaWidget() {
+  return new Promise((resolve) => {
+    const waitForRecaptcha = () => {
+      if (!window.grecaptcha || typeof window.grecaptcha.render !== 'function') {
+        setTimeout(waitForRecaptcha, 120);
+        return;
+      }
+
+      let holder = document.getElementById('recaptcha-holder');
+      if (!holder) {
+        holder = document.createElement('div');
+        holder.id = 'recaptcha-holder';
+        holder.style.position = 'fixed';
+        holder.style.left = '-9999px';
+        holder.style.top = '0';
+        document.body.appendChild(holder);
+      }
+
+      if (recaptchaWidgetId === null) {
+        recaptchaWidgetId = window.grecaptcha.render(holder, {
+          sitekey: RECAPTCHA_SITE_KEY,
+          size: 'invisible',
+        });
+      }
+
+      resolve(recaptchaWidgetId);
+    };
+
+    waitForRecaptcha();
   });
 }
 
+async function verifyRecaptchaOrFail(action) {
+  loadRecaptchaScript();
+  const widgetId = await ensureRecaptchaWidget();
+  const token = await window.grecaptcha.execute(widgetId);
+
+  const { data, error } = await supabase.functions.invoke('verify-recaptcha', {
+    body: {
+      token,
+      action,
+    },
+  });
+
+  window.grecaptcha.reset(widgetId);
+
+  if (error) {
+    throw new Error(
+      `Error de verificación reCAPTCHA: ${error.message}. ` +
+        'Despliega verify-recaptcha con verify_jwt=false y revisa reCAPTCHA_secret.',
+    );
+  }
+
+  if (!data?.success) {
+    throw new Error(data?.message || 'No se pudo validar reCAPTCHA.');
+  }
+}
 
 const shouldDetectSessionInUrl = hasSupabaseAuthParams() && isAppBasePath();
 
@@ -109,7 +138,8 @@ const state = {
 
 let timerInterval = null;
 let chatbotScriptLoaded = false;
-let panelTouchStartX = null;
+let recaptchaScriptLoaded = false;
+let recaptchaWidgetId = null;
 
 const app = document.getElementById('app');
 
@@ -244,6 +274,8 @@ async function fetchProfile() {
 }
 
 async function initSession() {
+  loadRecaptchaScript();
+  ensureRecaptchaWidget();
 
   const { data, error } = await supabase.auth.getSession();
   if (error) toast(error.message);
@@ -342,9 +374,8 @@ function loginPanelView() {
       <form id="auth-form" class="mt-3 space-y-2">
         <input required name="email" type="email" placeholder="Correo electrónico" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
         <input required name="password" type="password" placeholder="Contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
-        <div class="cf-turnstile" data-sitekey="${TURNSTILE_SITE_KEY}"></div>
         ${state.authError ? `<p class="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-950/20 dark:text-red-300">${state.authError}</p>` : ''}
-        <button ${state.authLoading ? 'disabled' : ''} class="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-2 text-white hover:bg-blue-500 disabled:opacity-70">
+        <button data-mode="login" ${state.authLoading ? 'disabled' : ''} class="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-2 text-white hover:bg-blue-500 disabled:opacity-70">
           ${state.authLoading ? '<span class="spinner"></span> Iniciando...' : 'Entrar'}
         </button>
         <button type="button" id="go-register-from-login" class="w-full rounded-xl border border-zinc-200 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">¿No tienes cuenta? Regístrate</button>
@@ -365,9 +396,8 @@ function registerPanelView() {
         <input required name="register_email" type="email" placeholder="Correo electrónico" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
         <input required name="register_password" type="password" placeholder="Contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
         <input required name="confirm_password" type="password" placeholder="Repite la contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
-        <div class="cf-turnstile" data-sitekey="${TURNSTILE_SITE_KEY}"></div>
         ${state.registerError ? `<p class="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-950/20 dark:text-red-300">${state.registerError}</p>` : ''}
-        <button ${state.registerLoading ? 'disabled' : ''} class="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-2 text-white hover:bg-violet-500 disabled:opacity-70">
+        <button data-mode="register" ${state.registerLoading ? 'disabled' : ''} class="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-2 text-white hover:bg-violet-500 disabled:opacity-70">
           ${state.registerLoading ? '<span class="spinner"></span> Registrando...' : 'Registrarse'}
         </button>
       </form>
@@ -437,7 +467,6 @@ function dayPanelView() {
               <input required name="nombre" value="${editingTask ? editingTask.nombre : ''}" placeholder="Nombre" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
               <input required min="1" name="minutos" type="number" value="${editingTask ? editingTask.minutos : 30}" placeholder="Minutos" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
               <input required min="${todayISO()}" name="fecha" type="date" value="${editingTask ? editingTask.fecha : defaultCreateDate}" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
-              <p class="text-xs text-zinc-500">Fecha de entrega: se crearán tareas desde el día seleccionado hasta esta fecha.</p>
               <div class="flex gap-2">
                 <button class="rounded-xl bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500">${editingTask ? 'Guardar cambios' : 'Crear tarea'}</button>
                 ${editingTask ? '<button type="button" id="cancel-edit" class="rounded-xl border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">Cancelar</button>' : ''}
@@ -447,10 +476,21 @@ function dayPanelView() {
             <form id="exam-form" class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 space-y-2">
               <h3 class="font-semibold">Planificar examen</h3>
               <input required name="nombre" placeholder="Nombre examen" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
+              <div class="rounded-xl border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200">
+                Fecha del examen
+              </div>
               <input required min="${todayISO()}" name="fecha_examen" type="date" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
+              <div class="rounded-xl border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-900 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-200">
+                Fecha de inicio
+              </div>
               <input required min="${todayISO()}" name="fecha_inicio" type="date" value="${defaultCreateDate}" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
               <input required min="1" name="minutos_diarios" type="number" value="60" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 dark:border-zinc-700" />
               <button class="rounded-xl bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-500">Generar plan automático</button>
+              ${
+                state.examSummary
+                  ? `<p class="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:border-amber-700/60 dark:bg-amber-950/20 dark:text-amber-300">Plan creado. Fecha de inicio: <strong>${toHumanDate(state.examSummary.fecha_inicio)}</strong> · Fecha del examen: <strong>${toHumanDate(state.examSummary.fecha_examen)}</strong></p>`
+                  : ''
+              }
             </form>`
           : `<div class="rounded-2xl border border-zinc-200 bg-zinc-100/80 p-3 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300">
               ${selectedDateStatus === 'past' ? 'Este día ya pasó: solo puedes revisar tareas no entregadas.' : 'Pulsa el botón + para crear tareas o planificar exámenes.'}
@@ -560,10 +600,10 @@ function appView() {
       </section>
 
       <div id="overlay" class="overlay fixed inset-0 z-40 bg-black/30"></div>
-      <aside id="panel" class="side-panel fixed right-0 top-0 z-50 h-full w-full max-w-lg overflow-y-auto border-l border-zinc-200 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-950">
+      <aside id="panel" class="side-panel fixed right-0 top-0 z-50 h-full w-full max-w-lg overflow-y-auto border-l border-zinc-200 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-950 ${state.createMode ? 'inset-x-3 top-20 h-auto max-h-[78vh] rounded-2xl border shadow-2xl md:inset-x-auto md:right-4 md:w-full' : ''}">
         <div class="mb-3 flex items-center justify-between">
           <h2 class="text-lg font-semibold">Detalle del día</h2>
-          <button type="button" id="close-panel" class="rounded-xl border border-zinc-200 px-3 py-1 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Cerrar</button>
+          <button id="close-panel" class="rounded-xl border border-zinc-200 px-3 py-1 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Cerrar</button>
         </div>
         ${dayPanelView()}
       </aside>
@@ -613,7 +653,6 @@ function render() {
 
   app.innerHTML = state.session ? appView() : authView();
   bindEvents();
-  initTurnstileWidgets();
   setPanel(state.panelOpen);
   syncChatbotWidget();
 }
@@ -645,24 +684,6 @@ function setPanel(open) {
   if (!panel || !overlay) return;
   panel.classList.toggle('open', open);
   overlay.classList.toggle('open', open);
-  document.body.style.overflow = open ? 'hidden' : '';
-}
-
-function closeDayPanel() {
-  const panel = document.getElementById('panel');
-  const overlay = document.getElementById('overlay');
-  if (panel && overlay) {
-    panel.classList.remove('open');
-    overlay.classList.remove('open');
-  }
-  document.body.style.overflow = '';
-  state.panelOpen = false;
-  state.createMode = false;
-  state.editTaskId = null;
-  state.todayTasksModalOpen = false;
-  window.setTimeout(() => {
-    render();
-  }, 260);
 }
 
 async function handleAuth(event) {
@@ -670,7 +691,6 @@ async function handleAuth(event) {
   if (state.authLoading) return;
 
   const formData = new FormData(event.target);
-  const captchaToken = getTurnstileToken(event.target);
   const email = String(formData.get('email')).trim();
   const password = String(formData.get('password')).trim();
 
@@ -678,18 +698,16 @@ async function handleAuth(event) {
   state.authLoading = true;
   render();
 
-  if (!captchaToken) {
+  try {
+    await verifyRecaptchaOrFail('login');
+  } catch (error) {
     state.authLoading = false;
-    state.authError = 'Completa el captcha para continuar.';
+    state.authError = error.message || 'Verificación reCAPTCHA fallida.';
     render();
     return;
   }
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-    options: { captchaToken },
-  });
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   state.authLoading = false;
   if (!error) {
@@ -706,7 +724,6 @@ async function handleRegister(event) {
   if (state.registerLoading) return;
 
   const formData = new FormData(event.target);
-  const captchaToken = getTurnstileToken(event.target);
   const email = String(formData.get('register_email')).trim();
   const username = email.split('@')[0] || 'usuario';
   const password = String(formData.get('register_password')).trim();
@@ -723,9 +740,11 @@ async function handleRegister(event) {
   state.registerLoading = true;
   render();
 
-  if (!captchaToken) {
+  try {
+    await verifyRecaptchaOrFail('register');
+  } catch (error) {
     state.registerLoading = false;
-    state.registerError = 'Completa el captcha para continuar.';
+    state.registerError = error.message || 'Verificación reCAPTCHA fallida.';
     render();
     return;
   }
@@ -734,7 +753,6 @@ async function handleRegister(event) {
     email,
     password,
     options: {
-      captchaToken,
       data: { username },
       emailRedirectTo: GH_PAGES_APP_URL,
     },
@@ -764,24 +782,22 @@ async function upsertTask(event) {
   event.preventDefault();
   const formData = new FormData(event.target);
 
-  const nombre = String(formData.get('nombre')).trim();
-  const minutos = Number(formData.get('minutos'));
-  const fechaEntrega = String(formData.get('fecha')).trim() || state.selectedDate || todayISO();
-  const inicio = state.selectedDate || todayISO();
+  const payload = {
+    user_id: state.session.user.id,
+    nombre: String(formData.get('nombre')).trim(),
+    minutos: Number(formData.get('minutos')),
+    fecha: String(formData.get('fecha')),
+    tipo: 'task',
+  };
 
-  if (!nombre || minutos <= 0 || !fechaEntrega) {
+  if (!payload.nombre || payload.minutos <= 0 || !payload.fecha) {
     toast('Completa todos los campos de tarea correctamente.');
     return;
   }
-  if (fechaEntrega < todayISO()) {
+  if (payload.fecha < todayISO()) {
     toast('No puedes crear tareas en días anteriores a hoy.');
     return;
   }
-  if (inicio > fechaEntrega) {
-    toast('La fecha de entrega no puede ser anterior al día seleccionado.');
-    return;
-  }
-
 
   if (state.editTaskId) {
     const current = state.tasks.find((item) => String(item.id) === String(state.editTaskId));
@@ -801,23 +817,9 @@ async function upsertTask(event) {
     state.editTaskId = null;
     toast('Tarea actualizada.');
   } else {
-    const tasks = [];
-    let cursor = parseDate(inicio);
-    const end = parseDate(fechaEntrega);
-    const serieNombre = `${nombre} [entrega ${fechaEntrega}]`;
-    while (cursor <= end) {
-      tasks.push({
-        user_id: state.session.user.id,
-        nombre: serieNombre,
-        minutos,
-        fecha: formatDate(cursor),
-        tipo: 'task',
-      });
-      cursor.setDate(cursor.getDate() + 1);
-    }
-    const { error } = await supabase.from('tasks').insert(tasks);
+    const { error } = await supabase.from('tasks').insert(payload);
     if (error) return toast(error.message);
-    toast(`Tarea creada (${tasks.length} días).`);
+    toast('Tarea creada.');
   }
 
   await fetchTasks();
@@ -831,11 +833,11 @@ async function deleteTask(taskId) {
     return;
   }
 
-  const isSeries = task.nombre.includes('[entrega ');
-  const query = supabase.from('tasks').delete().eq('user_id', state.session.user.id);
-  const { error } = isSeries
-    ? await query.eq('nombre', task.nombre).eq('tipo', task.tipo)
-    : await query.eq('id', taskId);
+  const { error } = await supabase
+    .from('tasks')
+    .delete()
+    .eq('id', taskId)
+    .eq('user_id', state.session.user.id);
 
   if (error) {
     toast(error.message);
@@ -869,7 +871,6 @@ async function createExamPlan(event) {
     toast('La fecha de inicio no puede ser posterior al examen.');
     return;
   }
-
 
   const { error: examError } = await supabase.from('exams').insert({
     user_id: state.session.user.id,
@@ -1077,7 +1078,7 @@ async function submitTask(taskId) {
 
   await fetchTasks();
   render();
-  toast(isSeries ? `Serie entregada y eliminada: ${task.nombre}` : `Tarea entregada: ${task.nombre}`);
+  toast(`Tarea entregada: ${task.nombre}`);
 }
 
 function resetTimer() {
@@ -1171,8 +1172,6 @@ function bindEvents() {
   const logoutBtn = document.getElementById('logout');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
-      const shouldLogout = window.confirm('¿Seguro que quieres cerrar sesión?');
-      if (!shouldLogout) return;
       await supabase.auth.signOut();
     });
   }
@@ -1204,7 +1203,7 @@ function bindEvents() {
   const fab = document.getElementById('fab');
   if (fab) {
     fab.addEventListener('click', () => {
-      setPanel(true);
+      state.panelOpen = true;
       state.createMode = true;
       render();
       document.querySelector('#task-form input[name="nombre"]')?.focus();
@@ -1212,29 +1211,10 @@ function bindEvents() {
   }
 
   const closePanel = document.getElementById('close-panel');
-  if (closePanel) closePanel.addEventListener('click', closeDayPanel);
+  if (closePanel) closePanel.addEventListener('click', () => setPanel(false));
 
   const overlay = document.getElementById('overlay');
-  if (overlay) overlay.addEventListener('click', closeDayPanel);
-
-  const panel = document.getElementById('panel');
-  if (panel) {
-    panel.addEventListener('touchstart', (event) => {
-      panelTouchStartX = event.touches[0]?.clientX ?? null;
-    }, { passive: true });
-    panel.addEventListener('touchmove', (event) => {
-      if (panelTouchStartX === null) return;
-      const currentX = event.touches[0]?.clientX ?? panelTouchStartX;
-      const deltaX = currentX - panelTouchStartX;
-      if (deltaX > 80) {
-        panelTouchStartX = null;
-        closeDayPanel();
-      }
-    }, { passive: true });
-    panel.addEventListener('touchend', () => {
-      panelTouchStartX = null;
-    }, { passive: true });
-  }
+  if (overlay) overlay.addEventListener('click', () => setPanel(false));
 
   const todayTasksOverlay = document.getElementById('today-tasks-overlay');
   if (todayTasksOverlay) {
@@ -1313,5 +1293,4 @@ function bindEvents() {
 
 }
 
-registerServiceWorker();
 initSession();

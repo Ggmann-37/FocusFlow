@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://ggmann-37.github.io/FocusFlow/sitemap.xml
