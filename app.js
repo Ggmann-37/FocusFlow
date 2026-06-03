@@ -6,6 +6,17 @@ const GH_PAGES_APP_URL = 'https://ggmann-37.github.io/FocusFlow/';
 const APP_BASE_PATH = '/FocusFlow/';
 const TURNSTILE_SITE_KEY = '0x4AAAAAADRD9WtCixOGOgYq';
 
+// Register Service Worker for PWA support
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/FocusFlow/service-worker.js')
+    .then((registration) => {
+      console.log('Service Worker registered:', registration);
+    })
+    .catch((error) => {
+      console.warn('Service Worker registration failed:', error);
+    });
+}
+
 function hasSupabaseAuthParams() {
   const raw = `${window.location.hash || ''}${window.location.search || ''}`;
   return /(access_token|refresh_token|expires_in|token_type|type)=/i.test(raw);
@@ -283,7 +294,7 @@ function authView() {
           </div>
           <div class="flex gap-2">
             <button id="open-login-panel" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">Iniciar sesión</button>
-            <button id="open-register-panel" class="rounded-xl border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:bg-zinc-900 dark:text-blue-300 dark:hover:bg-zinc-800">Regístrate</button>
+            <button id="open-register-panel" class="rounded-xl border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:bg-zinc-900">Registrarse</button>
           </div>
         </header>
 
@@ -299,15 +310,15 @@ function authView() {
         <section class="grid gap-3 md:grid-cols-3">
           <article class="rounded-3xl border border-blue-100 bg-blue-200/70 p-4 text-center shadow-sm dark:border-blue-900/40 dark:bg-blue-950/30">
             <h3 class="text-2xl font-bold text-blue-700 dark:text-blue-300">Intuitivo</h3>
-            <p class="mt-2 text-sm text-zinc-700 dark:text-zinc-300">Diseño pensado para estudiantes: creas tareas, ves tu calendario y organizas cada día en pocos clics, sin menús confusos ni pasos innecesarios.</p>
+            <p class="mt-2 text-sm text-zinc-700 dark:text-zinc-300">Diseño pensado para estudiantes: creas tareas, ves tu calendario y organizas cada día en pocos clics, sin menús confusos ni distracciones.</p>
           </article>
           <article class="rounded-3xl border border-violet-100 bg-violet-200/70 p-4 text-center shadow-sm dark:border-violet-900/40 dark:bg-violet-950/30">
             <h3 class="text-2xl font-bold text-violet-700 dark:text-violet-300">Gratis</h3>
-            <p class="mt-2 text-sm text-zinc-700 dark:text-zinc-300">Disfruta de planificación automática de exámenes, temporizador y seguimiento diario sin pagar cuotas ni encontrarte con funciones bloqueadas a mitad de uso.</p>
+            <p class="mt-2 text-sm text-zinc-700 dark:text-zinc-300">Disfruta de planificación automática de exámenes, temporizador y seguimiento diario sin pagar cuotas ni encontrarte con funciones bloqueadas.</p>
           </article>
           <article class="rounded-3xl border border-indigo-100 bg-indigo-200/70 p-4 text-center shadow-sm dark:border-indigo-900/40 dark:bg-indigo-950/30">
             <h3 class="text-2xl font-bold text-indigo-700 dark:text-indigo-300">Seguro</h3>
-            <p class="mt-2 text-sm text-zinc-700 dark:text-zinc-300">Tu información académica se guarda en un entorno protegido y estable, con una experiencia fiable para que puedas centrarte en estudiar con tranquilidad.</p>
+            <p class="mt-2 text-sm text-zinc-700 dark:text-zinc-300">Tu información académica se guarda en un entorno protegido y estable, con una experiencia fiable para que puedas centrarte en estudiar.</p>
           </article>
         </section>
 
@@ -336,7 +347,7 @@ function loginPanelView() {
         <button ${state.authLoading ? 'disabled' : ''} class="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-2 text-white hover:bg-blue-500 disabled:opacity-70">
           ${state.authLoading ? '<span class="spinner"></span> Iniciando...' : 'Entrar'}
         </button>
-        <button type="button" id="go-register-from-login" class="w-full rounded-xl border border-zinc-200 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">¿No tienes cuenta? Regístrate</button>
+        <button type="button" id="go-register-from-login" class="w-full rounded-xl border border-zinc-200 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">¿No tienes cuenta? Registrarse</button>
       </form>
     </section>
   `;
@@ -351,9 +362,9 @@ function registerPanelView() {
         <button id="close-register-panel" class="rounded-lg border border-zinc-200 px-2 py-1 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Cerrar</button>
       </div>
       <form id="register-form" class="mt-3 space-y-2">
-        <input required name="register_email" type="email" placeholder="Correo electrónico" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
-        <input required name="register_password" type="password" placeholder="Contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
-        <input required name="confirm_password" type="password" placeholder="Repite la contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700" />
+        <input required name="register_email" type="email" placeholder="Correo electrónico" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700" />
+        <input required name="register_password" type="password" placeholder="Contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700" />
+        <input required name="confirm_password" type="password" placeholder="Repite la contraseña" class="w-full rounded-xl border border-zinc-200 bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700" />
         <div class="cf-turnstile" data-sitekey="${TURNSTILE_SITE_KEY}"></div>
         ${state.registerError ? `<p class="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-950/20 dark:text-red-300">${state.registerError}</p>` : ''}
         <button ${state.registerLoading ? 'disabled' : ''} class="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-2 text-white hover:bg-violet-500 disabled:opacity-70">
@@ -399,17 +410,17 @@ function dayPanelView() {
                     <p class="font-medium">${task.nombre}</p>
                     <p class="text-sm text-zinc-500">${task.minutos} min · ${task.tipo === 'exam' ? 'Plan examen' : 'Tarea'}</p>
                     ${isPast ? '<p class="mt-1 text-xs font-semibold text-rose-600 dark:text-rose-300">No entregada</p>' : ''}
-                    <p id="timer-${task.id}" class="timer-text mt-1 text-sm font-semibold text-blue-600 dark:text-blue-300">${isTimerTask ? formatSeconds(state.timer.remainingSeconds) : formatSeconds(Number(task.minutos) * 60)}</p>
+                    <p id="timer-${task.id}" class="timer-text mt-1 text-sm font-semibold text-blue-600 dark:text-blue-300">${isTimerTask ? formatSeconds(state.timer.remainingSeconds) : formatSeconds(task.minutos * 60)}</p>
                   </div>
                   <div class="flex gap-1">
-                    <button data-edit-task="${task.id}" ${isPast ? 'disabled' : ''} class="rounded-lg border border-zinc-200 px-2 py-1 text-xs hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800">Editar</button>
-                    <button data-delete-task="${task.id}" ${isPast ? 'disabled' : ''} class="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50">Eliminar</button>
+                    <button data-edit-task="${task.id}" ${isPast ? 'disabled' : ''} class="rounded-lg border border-zinc-200 px-2 py-1 text-xs hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50">Editar</button>
+                    <button data-delete-task="${task.id}" ${isPast ? 'disabled' : ''} class="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-500/40 dark:hover:bg-red-950/20">Eliminar</button>
                   </div>
                 </div>
                 <div class="mt-3 flex flex-wrap gap-2">
                   <button data-start-timer="${task.id}" ${(isPast || isFuture) ? 'disabled' : ''} class="rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50">Iniciar</button>
                   <button data-pause-timer="${task.id}" ${(isPast || isFuture) ? 'disabled' : ''} class="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800">Pausar</button>
-                  <button data-submit-task="${task.id}" ${(isPast || isFuture) ? 'disabled' : ''} class="rounded-lg border border-emerald-300 px-2.5 py-1.5 text-xs text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50">Entregar</button>
+                  <button data-submit-task="${task.id}" ${(isPast || isFuture) ? 'disabled' : ''} class="rounded-lg border border-emerald-300 px-2.5 py-1.5 text-xs text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-500/40 dark:text-emerald-300 dark:hover:bg-emerald-950/20">Entregar</button>
                 </div>
               </article>
             `;
@@ -469,7 +480,7 @@ function appView() {
       ${
         showNotificationPrompt
           ? `<section class="pointer-events-none fixed left-1/2 top-3 z-[65] w-[95%] max-w-xl -translate-x-1/2 md:top-4">
-              <div class="pointer-events-auto flex items-start gap-3 rounded-xl border border-blue-200/90 bg-white/95 px-3 py-2 text-sm text-blue-900 shadow-lg backdrop-blur dark:border-blue-900/70 dark:bg-zinc-900/95 dark:text-blue-200">
+              <div class="pointer-events-auto flex items-start gap-3 rounded-xl border border-blue-200/90 bg-white/95 px-3 py-2 text-sm text-blue-900 shadow-lg backdrop-blur dark:border-blue-900/40 dark:bg-blue-950/40 dark:text-blue-100">
                 <button id="request-notification-permission" class="flex-1 text-left hover:opacity-90">
                   <strong>Notificaciones de escritorio</strong><br />
                   <span class="text-xs opacity-90">Actívalas para avisos del temporizador.</span>
@@ -542,8 +553,8 @@ function appView() {
           </article>
 
           <div class="flex items-center gap-2">
-            <button id="fab" class="rounded-xl border border-blue-300 bg-blue-600 px-3 py-2 text-xl font-bold leading-none text-white shadow-soft hover:bg-blue-500 dark:border-blue-500" aria-label="Añadir tarea">+</button>
-            <button id="open-panel" class="flex-1 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300">Ver tareas del día</button>
+            <button id="fab" class="rounded-xl border border-blue-300 bg-blue-600 px-3 py-2 text-xl font-bold leading-none text-white shadow-soft hover:bg-blue-500 dark:border-blue-500">+</button>
+            <button id="open-panel" class="flex-1 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300">Ver detalle</button>
           </div>
         </aside>
       </section>
@@ -781,7 +792,7 @@ async function upsertTask(event) {
 
     const { error } = await supabase
       .from('tasks')
-      .update({ nombre: payload.nombre, minutos: payload.minutos, fecha: payload.fecha })
+      .update({ nombre: nombre, minutos: minutos, fecha: fechaEntrega })
       .eq('id', state.editTaskId)
       .eq('user_id', state.session.user.id);
 
@@ -1064,6 +1075,7 @@ async function submitTask(taskId) {
     return;
   }
 
+  const isSeries = task.nombre.includes('[entrega ');
   await fetchTasks();
   render();
   toast(isSeries ? `Serie entregada y eliminada: ${task.nombre}` : `Tarea entregada: ${task.nombre}`);
